@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum SystemRole {
+  USER
+  WORKSPACE_MANAGER
+  ADMIN
+  OWNER
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CASH_PENDING
+  PAID
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  provider      String?   // "google", "github", "credentials"
+  systemRole    SystemRole @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  teamRoles     UserTeamRole[]
+  bookings      Booking[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     UserTeamRole[]
+  bookings    Booking[]
+
+  @@map("teams")
+}
+
+model UserTeamRole {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId          String
+  team            Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  committeeName   String?  // Optional sub-committee (e.g., "PR", "Engineering")
+  customRoleTitle String   // e.g., "PR Head", "Technical Lead", "Guest Member"
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, teamId, committeeName, customRoleTitle])
+  @@map("user_team_roles")
+}
+
+model Room {
+  id              String   @id @default(cuid())
+  name            String
+  capacity        Int
+  hasScreen       Boolean  @default(false)
+  hasBalcony      Boolean  @default(false)
+  hasAC           Boolean  @default(true)
+  hasWhiteboard   Boolean  @default(true)
+  hasPowerOutlets Boolean  @default(true)
+  description     String?
+  svgPolygonCoords String  // SVG path/polygon coordinates for floor plan
+  svgX            Float    @default(0) // Center X for tooltip positioning
+  svgY            Float    @default(0) // Center Y for tooltip positioning
+  color           String   @default("#67C2B2") // Room color on floor plan
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bookings        Booking[]
+
+  @@map("rooms")
+}
+
+model Booking {
+  id                    String       @id @default(cuid())
+  roomId                String
+  room                  Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId                String
+  team                  Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  roleTitleUsed         String       // The role title used for this booking (e.g., "PR Head")
+  projectOrCommitteeName String      // Project name or committee name
+  startTime             DateTime
+  endTime               DateTime
+  description           String?
+  status                BookingStatus @default(PENDING)
+  paymentStatus         PaymentStatus @default(CASH_PENDING)
+  priorityScore         Int          @default(0) // Calculated based on role hierarchy
+  rejectionReason       String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([roomId, startTime, endTime])
+  @@index([userId])
+  @@index([teamId])
+  @@index([status])
+  @@map("bookings")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

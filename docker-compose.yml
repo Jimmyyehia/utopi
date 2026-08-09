@@ -1,0 +1,20 @@
+services:
+  utopi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: utopi-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/prod.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=change-this-to-a-super-secret-key-in-production-min-32-chars
+    volumes:
+      - utopi_data:/app/data
+
+volumes:
+  utopi_data:
+    driver: local

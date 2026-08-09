@@ -1,0 +1,646 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Calendar,
+  Clock,
+  Users,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Filter,
+  ChevronDown,
+  Building2,
+  ArrowLeft,
+  ShieldAlert,
+  Sparkles,
+  Layers,
+  UserCheck,
+  Trash2,
+} from "lucide-react"
+import Link from "next/link"
+import { useSession, signIn } from "next-auth/react"
+import { PersonaSwitcherModal } from "@/components/auth/PersonaSwitcherModal"
+import { AppSidebar } from "@/components/layout/AppSidebar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { cn, formatTime, formatDate } from "@/lib/utils"
+import type { BookingWithRelations } from "@/types"
+
+interface ApprovalQueueItem extends BookingWithRelations {
+  conflictingApproved?: BookingWithRelations[]
+  conflictingPending?: BookingWithRelations[]
+  hasConflict: boolean
+}
+
+export default function ApprovalDashboard() {
+  const { data: session, status: authStatus } = useSession()
+  const [queue, setQueue] = useState<ApprovalQueueItem[]>([])
+  const [stats, setStats] = useState({
+    totalRooms: 0,
+    totalBookingsToday: 0,
+    pendingApprovals: 0,
+    occupiedRooms: 0,
+    revenueToday: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<"all" | "conflicts" | "high-priority">("all")
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  // Modals
+  const [personaSwitcherOpen, setPersonaSwitcherOpen] = useState(false)
+  const [teamsModalOpen, setTeamsModalOpen] = useState(false)
+  const [rejectingBooking, setRejectingBooking] = useState<ApprovalQueueItem | null>(null)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [reschedulingBooking, setReschedulingBooking] = useState<ApprovalQueueItem | null>(null)
+  const [rescheduleStart, setRescheduleStart] = useState("")
+  const [rescheduleEnd, setRescheduleEnd] = useState("")
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false)
+
+  const isManager =
+    session?.user?.systemRole === "WORKSPACE_MANAGER" ||
+    session?.user?.systemRole === "ADMIN" ||
+    session?.user?.systemRole === "OWNER"
+
+  const fetchDashboardData = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/dashboard?date=${selectedDate}`)
+      if (res.ok) {
+        const data = await res.json()
+        setQueue(data.approvalQueue || [])
+        setStats(data.stats || { totalRooms: 0, totalBookingsToday: 0, pendingApprovals: 0, occupiedRooms: 0, revenueToday: 0 })
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      fetchDashboardData()
+    } else {
+      setLoading(false)
+    }
+  }, [selectedDate, authStatus])
+
+  const handleApprove = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED" }),
+      })
+      if (res.ok) {
+        fetchDashboardData()
+      } else {
+        alert("Failed to approve booking.")
+      }
+    } catch (error) {
+      console.error("Error approving:", error)
+      alert("Error approving booking.")
+    }
+  }
+
+  const confirmReject = async () => {
+    if (!rejectingBooking) return
+    setIsSubmittingAction(true)
+    try {
+      const res = await fetch(`/api/bookings/${rejectingBooking.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REJECTED", rejectionReason }),
+      })
+      if (res.ok) {
+        setRejectingBooking(null)
+        setRejectionReason("")
+        fetchDashboardData()
+      } else {
+        alert("Failed to reject booking.")
+      }
+    } catch (error) {
+      console.error("Error rejecting:", error)
+      alert("Error rejecting booking.")
+    } finally {
+      setIsSubmittingAction(false)
+    }
+  }
+
+  const confirmReschedule = async () => {
+    if (!reschedulingBooking || !rescheduleStart || !rescheduleEnd) return
+    setIsSubmittingAction(true)
+    try {
+      const res = await fetch(`/api/bookings/${reschedulingBooking.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startTime: new Date(rescheduleStart).toISOString(),
+          endTime: new Date(rescheduleEnd).toISOString(),
+        }),
+      })
+      if (res.ok) {
+        setReschedulingBooking(null)
+        setRescheduleStart("")
+        setRescheduleEnd("")
+        fetchDashboardData()
+      } else {
+        alert("Failed to reschedule booking.")
+      }
+    } catch (error) {
+      console.error("Error rescheduling:", error)
+      alert("Error rescheduling booking.")
+    } finally {
+      setIsSubmittingAction(false)
+    }
+  }
+
+  const handleUnbook = async (bookingId: string) => {
+    if (!confirm("Are you sure you want to unbook and release this reservation?")) return
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        fetchDashboardData()
+      } else {
+        alert("Failed to unbook reservation.")
+      }
+    } catch (error) {
+      console.error("Error unbooking:", error)
+      alert("Error unbooking reservation.")
+    }
+  }
+
+  const handleSwitchToManager = async () => {
+    setLoading(true)
+    await signIn("credentials", {
+      email: "manager@utopi.space",
+      password: "demo-password",
+      redirect: false,
+    })
+    window.location.reload()
+  }
+
+  const filteredQueue = queue.filter((item) => {
+    if (filter === "conflicts") return item.hasConflict
+    if (filter === "high-priority") return item.priorityScore >= 80
+    return true
+  })
+
+  // If unauthenticated or not manager, show friendly switcher
+  if (authStatus === "unauthenticated" || (!isManager && authStatus === "authenticated")) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex flex-col justify-center items-center">
+        <Card className="max-w-md w-full border-border shadow-xl text-center p-6 space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
+            <ShieldAlert className="h-8 w-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Manager Access Required</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              The Approval Dashboard and Priority Sorting Queue require a **Workspace Manager** account.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              onClick={handleSwitchToManager}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 h-auto shadow-md gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Switch to Alex Manager (1-Click)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setPersonaSwitcherOpen(true)}
+              className="w-full"
+            >
+              Choose Other Persona
+            </Button>
+            <Link href="/" className="block">
+              <Button variant="ghost" className="w-full text-xs">
+                ← Return to Floor Plan
+              </Button>
+            </Link>
+          </div>
+        </Card>
+
+        <PersonaSwitcherModal
+          isOpen={personaSwitcherOpen}
+          onClose={() => setPersonaSwitcherOpen(false)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Universal Sidebar */}
+      <AppSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+
+      {/* Main Content Area */}
+      <main
+        className={cn(
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen",
+          sidebarOpen ? "ml-64" : "ml-20"
+        )}
+      >
+        {/* Header */}
+        <header className="bg-card border-b border-border sticky top-0 z-30 px-4 sm:px-8 py-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-foreground tracking-tight">Manager Approval Dashboard</h1>
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold">
+                  Manager Mode
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">Manage booking conflicts & priority queues</p>
+            </div>
+          </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-muted/50 border border-border px-3 py-1.5 rounded-lg text-xs font-medium">
+            <Calendar className="h-3.5 w-3.5 text-primary" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent border-none outline-none text-xs cursor-pointer"
+            />
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs font-medium gap-1.5">
+                <Filter className="h-3.5 w-3.5" />
+                <span>
+                  {filter === "all" ? "All Requests" : filter === "conflicts" ? "Conflicts Only" : "High Priority (≥80)"}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel className="text-xs">Filter Queue</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setFilter("all")}>All Requests</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilter("conflicts")}>Conflicts Only</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilter("high-priority")}>High Priority (≥80)</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPersonaSwitcherOpen(true)}
+            className="text-xs gap-1.5 bg-primary/5 text-primary border-primary/20"
+          >
+            <UserCheck className="h-3.5 w-3.5" />
+            <span>Switch Identity</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTeamsModalOpen(true)}
+            className="text-xs gap-1.5"
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Teams</span>
+          </Button>
+
+          <Link href="/">
+            <Button variant="outline" size="sm" className="text-xs gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              <span>Floor Plan</span>
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-border">
+            <CardHeader className="pb-1 p-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Total Rooms
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{stats.totalRooms}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="pb-1 p-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Bookings Today
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{stats.totalBookingsToday}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="pb-1 p-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-yellow-600">
+                Pending Approvals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-yellow-600">{stats.pendingApprovals}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="pb-1 p-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-destructive">
+                Occupied Rooms
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl sm:text-3xl font-extrabold text-destructive">{stats.occupiedRooms}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Approval Queue Section */}
+        <Card className="border-border shadow-md">
+          <CardHeader className="p-5 border-b border-border bg-muted/20 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-bold text-foreground">
+                Priority Approval Queue ({filteredQueue.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Requests are sorted automatically by role hierarchy & priority score
+              </CardDescription>
+            </div>
+            {queue.some((q) => q.hasConflict) && (
+              <Badge variant="destructive" className="gap-1 text-xs">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {queue.filter((q) => q.hasConflict).length} Clashing Request(s)
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="py-16 text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Loading queue...</p>
+              </div>
+            ) : filteredQueue.length === 0 ? (
+              <div className="text-center py-16 p-4">
+                <CheckCircle className="h-12 w-12 text-primary mx-auto mb-3 opacity-80" />
+                <h3 className="text-base font-bold text-foreground">All caught up!</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                  There are no pending room booking requests for {formatDate(selectedDate)}.
+                </p>
+              </div>
+            ) : (
+              <ScrollArea className="max-h-[620px]">
+                <div className="divide-y divide-border">
+                  {filteredQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "p-5 transition-colors hover:bg-muted/30 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4",
+                        item.hasConflict && "bg-yellow-50/50 dark:bg-yellow-950/20"
+                      )}
+                    >
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h4 className="font-bold text-base text-foreground">{item.room.name}</h4>
+                          <Badge variant="outline" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
+                            Priority: {item.priorityScore} / 100
+                          </Badge>
+                          {item.hasConflict && (
+                            <Badge variant="destructive" className="text-xs font-semibold gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Time Slot Conflict
+                            </Badge>
+                          )}
+                          <Badge variant="cash-pending" className="text-[10px]">
+                            Cash on Arrival
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5 font-medium text-foreground">
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                            {item.user.name} ({item.roleTitleUsed})
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5" />
+                            {item.team.name}
+                          </span>
+                          <span className="flex items-center gap-1.5 font-mono">
+                            <Clock className="h-3.5 w-3.5" />
+                            {formatTime(item.startTime)} - {formatTime(item.endTime)}
+                          </span>
+                        </div>
+
+                        {item.description && (
+                          <p className="text-xs text-foreground bg-muted/40 p-2.5 rounded-lg border border-border">
+                            <span className="font-semibold text-muted-foreground">Purpose: </span>
+                            {item.description}
+                          </p>
+                        )}
+
+                        {item.conflictingApproved && item.conflictingApproved.length > 0 && (
+                          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-900 space-y-1.5">
+                            <p className="font-bold flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 text-yellow-700" />
+                              Clashes with approved booking:
+                            </p>
+                            {item.conflictingApproved.map((c) => (
+                              <div key={c.id} className="flex items-center justify-between gap-2">
+                                <p>
+                                  • {c.team.name} ({formatTime(c.startTime)} - {formatTime(c.endTime)})
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleUnbook(c.id)}
+                                  className="h-6 text-[10px] gap-1 px-2 rounded-md font-bold"
+                                  title="Unbook existing approved reservation"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Unbook
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(item.id)}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 text-xs h-9"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setRejectingBooking(item)
+                            setRejectionReason("")
+                          }}
+                          className="text-destructive hover:bg-destructive/10 border-destructive/30 gap-1.5 text-xs h-9"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Reject
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReschedulingBooking(item)
+                            setRescheduleStart(new Date(item.startTime).toISOString().slice(0, 16))
+                            setRescheduleEnd(new Date(item.endTime).toISOString().slice(0, 16))
+                          }}
+                          className="text-xs gap-1.5 h-9"
+                        >
+                          <Clock className="h-4 w-4" />
+                          Reschedule
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+
+      {/* Rejection Dialog */}
+      <Dialog open={Boolean(rejectingBooking)} onOpenChange={(open) => !open && setRejectingBooking(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Reject Booking Request
+            </DialogTitle>
+            <DialogDescription>
+              Provide an optional reason or feedback for {rejectingBooking?.user.name}. An email will be sent automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="reject-reason" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Rejection Reason / Feedback
+            </Label>
+            <Input
+              id="reject-reason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="e.g. Room booked for executive meeting, please pick another slot"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRejectingBooking(null)} disabled={isSubmittingAction}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmReject}
+              disabled={isSubmittingAction}
+              className="gap-2"
+            >
+              {isSubmittingAction ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={Boolean(reschedulingBooking)} onOpenChange={(open) => !open && setReschedulingBooking(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Reschedule Booking Slot
+            </DialogTitle>
+            <DialogDescription>
+              Adjust start and end time for {reschedulingBooking?.room.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                New Start Time
+              </Label>
+              <Input
+                type="datetime-local"
+                value={rescheduleStart}
+                onChange={(e) => setRescheduleStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                New End Time
+              </Label>
+              <Input
+                type="datetime-local"
+                value={rescheduleEnd}
+                onChange={(e) => setRescheduleEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setReschedulingBooking(null)} disabled={isSubmittingAction}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmReschedule}
+              disabled={isSubmittingAction || !rescheduleStart || !rescheduleEnd}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-semibold"
+            >
+              {isSubmittingAction ? "Saving..." : "Save Rescheduled Time"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      </main>
+
+      {/* Persona Switcher Modal */}
+      <PersonaSwitcherModal
+        isOpen={personaSwitcherOpen}
+        onClose={() => setPersonaSwitcherOpen(false)}
+      />
+    </div>
+  )
+}
