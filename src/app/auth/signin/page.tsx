@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { UserCheck, Sparkles, ArrowRight, Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -243,7 +244,14 @@ function SignInForm() {
                   )}
                 </Button>
 
-                <div className="text-center pt-2">
+                <div className="text-center pt-3 border-t border-border/60 text-xs text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/auth/signup" className="text-primary font-bold hover:underline">
+                    Create Account
+                  </Link>
+                </div>
+
+                <div className="text-center pt-1">
                   <Button
                     type="button"
                     variant="ghost"

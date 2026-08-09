@@ -266,17 +266,19 @@ export default function ApprovalDashboard() {
       {/* Main Content Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 min-h-screen",
-          sidebarOpen ? "ml-64" : "ml-20"
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0",
+          sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
         {/* Header */}
-        <header className="bg-card border-b border-border sticky top-0 z-30 px-4 sm:px-8 py-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <header className="bg-card border-b border-border sticky top-0 z-30 px-3 sm:px-8 py-3.5 sm:py-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-foreground tracking-tight">Manager Approval Dashboard</h1>
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold">
+                <h1 className="text-base sm:text-xl font-bold text-foreground tracking-tight leading-tight">
+                  Manager Approvals
+                </h1>
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] sm:text-xs font-semibold">
                   Manager Mode
                 </Badge>
               </div>

@@ -164,38 +164,41 @@ export default function PartnersPage() {
       {/* Main Page Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 min-h-screen",
-          sidebarOpen ? "ml-64" : "ml-20"
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0",
+          sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
         {/* Top Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
               <Handshake className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">Our Partners</h1>
+              <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight">
+                Our Partners
+              </h1>
+              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">3 Collaborations</p>
             </div>
-            <Badge variant="outline" className="text-xs font-semibold py-0.5 border-primary/30 text-primary">
+            <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold py-0.5 border-primary/30 text-primary">
               3 Strategic Partners
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
             <Link href="/">
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
                 <Layers className="h-3.5 w-3.5" />
-                Floor Plan
+                <span className="hidden sm:inline">Floor Plan</span>
               </Button>
             </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-6 max-w-6xl mx-auto w-full space-y-8">
+        <div className="p-3 sm:p-6 max-w-6xl mx-auto w-full space-y-4 sm:space-y-8">
           {/* Hero Banner */}
-          <div className="relative rounded-3xl p-8 bg-gradient-to-r from-primary/15 via-emerald-500/10 to-purple-500/10 border border-border/80 shadow-sm overflow-hidden">
+          <div className="relative rounded-2xl sm:rounded-3xl p-5 sm:p-8 bg-gradient-to-r from-primary/15 via-emerald-500/10 to-purple-500/10 border border-border/80 shadow-sm overflow-hidden">
             <div className="relative z-10 max-w-2xl space-y-2">
               <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 font-bold">
                 Ecosystem & Collaborations

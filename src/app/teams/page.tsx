@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator"
 import { cn, getInitials } from "@/lib/utils"
 
 import { useSession } from "next-auth/react"
+import { CreateUserModal } from "@/components/auth/CreateUserModal"
 
 interface TeamDirectoryItem {
   id: string
@@ -134,6 +135,7 @@ export default function TeamsPage() {
     )
 
   const totalRoles = filteredTeams.reduce((acc, t) => acc + t.members.length, 0)
+  const [createUserOpen, setCreateUserOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -143,38 +145,49 @@ export default function TeamsPage() {
       {/* Main Page Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 min-h-screen",
-          sidebarOpen ? "ml-64" : "ml-20"
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0",
+          sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
         {/* Top Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
               <Users className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">Teams & Roles</h1>
+              <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight">
+                Teams & Roles
+              </h1>
+              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">{totalRoles} Active Roles</p>
             </div>
-            <Badge variant="outline" className="text-xs font-semibold py-0.5 border-primary/30 text-primary">
-              {STATIC_TEAMS.length} Organizations • {totalRoles} Roles
+            <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold py-0.5 border-primary/30 text-primary">
+              {filteredTeams.length} Organizations • {totalRoles} Roles
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              size="sm"
+              onClick={() => setCreateUserOpen(true)}
+              className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>+ Add User</span>
+            </Button>
             <Link href="/">
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
                 <Layers className="h-3.5 w-3.5" />
-                Floor Plan
+                <span className="hidden sm:inline">Floor Plan</span>
               </Button>
             </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-6 max-w-6xl mx-auto w-full space-y-6">
+        <div className="p-3 sm:p-6 max-w-6xl mx-auto w-full space-y-4 sm:space-y-6">
           {/* Top Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border shadow-xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-card border border-border shadow-xs">
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -254,6 +267,15 @@ export default function TeamsPage() {
           </div>
         </div>
       </main>
+
+      <CreateUserModal
+        isOpen={createUserOpen}
+        onClose={() => setCreateUserOpen(false)}
+        onSuccess={() => {
+          setCreateUserOpen(false)
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }

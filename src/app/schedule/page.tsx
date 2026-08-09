@@ -178,25 +178,28 @@ export default function SchedulePage() {
       {/* Main Page Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 min-h-screen",
-          sidebarOpen ? "ml-64" : "ml-20"
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0",
+          sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
         {/* Top Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
               <Calendar className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">Daily Schedule</h1>
+              <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight">
+                Schedule
+              </h1>
+              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">9 AM – 10 PM</p>
             </div>
-            <Badge variant="outline" className="text-xs font-semibold py-0.5 border-primary/30 text-primary">
+            <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold py-0.5 border-primary/30 text-primary">
               9:00 AM – 10:00 PM
             </Badge>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               size="sm"
               onClick={() => {
@@ -204,15 +207,15 @@ export default function SchedulePage() {
                 setBookingInitialDate(selectedDate)
                 setBookingModalOpen(true)
               }}
-              className="h-9 gap-1.5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs"
+              className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs"
             >
-              <Plus className="h-4 w-4" />
-              New Reservation
+              <Plus className="h-3.5 w-3.5" />
+              <span>Book</span>
             </Button>
             <Link href="/">
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs rounded-xl">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
                 <Layers className="h-3.5 w-3.5" />
-                Floor Plan
+                <span className="hidden sm:inline">Floor Plan</span>
               </Button>
             </Link>
           </div>

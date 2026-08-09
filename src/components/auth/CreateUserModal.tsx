@@ -1,0 +1,418 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  UserPlus,
+  Building2,
+  Lock,
+  Mail,
+  User,
+  Sparkles,
+  Shield,
+  CheckCircle2,
+  X,
+  Briefcase,
+  Layers,
+} from "lucide-react"
+import { signIn } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { calculatePriorityScore } from "@/lib/utils"
+
+interface TeamOption {
+  id: string
+  name: string
+}
+
+interface CreateUserModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSuccess?: () => void
+}
+
+export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [accountType, setAccountType] = useState<"member" | "management">("member")
+  const [systemRole, setSystemRole] = useState<"USER" | "WORKSPACE_MANAGER" | "ADMIN">("USER")
+  
+  const [teams, setTeams] = useState<TeamOption[]>([])
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
+  const [isCreatingNewTeam, setIsCreatingNewTeam] = useState(false)
+  const [newTeamName, setNewTeamName] = useState("")
+  const [newTeamDescription, setNewTeamDescription] = useState("")
+  
+  const [committeeName, setCommitteeName] = useState("Engineering")
+  const [customRoleTitle, setCustomRoleTitle] = useState("Member")
+  
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Fetch existing teams for selection
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/teams")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            // Deduplicate teams
+            const uniqueTeams = Array.from(
+              new Map(data.map((t: any) => [t.id || t.teamId, { id: t.id || t.teamId, name: t.name || t.team?.name }])).values()
+            )
+            setTeams(uniqueTeams)
+            if (uniqueTeams.length > 0 && !selectedTeamId) {
+              setSelectedTeamId(uniqueTeams[0].id)
+            }
+          }
+        })
+        .catch(() => {
+          setTeams([
+            { id: "hawk-insight", name: "Hawk Insight" },
+            { id: "nexus-labs", name: "Nexus Labs" },
+          ])
+          setSelectedTeamId("hawk-insight")
+        })
+    }
+  }, [isOpen, selectedTeamId])
+
+  const calculatedScore = calculatePriorityScore(customRoleTitle)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setErrorMessage("Please fill in all required fields (Name, Email, Password).")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim(),
+        password: password.trim(),
+        systemRole: accountType === "management" ? systemRole : "USER",
+        teamId: isCreatingNewTeam ? undefined : selectedTeamId,
+        newTeamName: isCreatingNewTeam ? newTeamName.trim() : undefined,
+        newTeamDescription: isCreatingNewTeam ? newTeamDescription.trim() : undefined,
+        committeeName: accountType === "member" ? committeeName.trim() : undefined,
+        customRoleTitle: accountType === "member" ? customRoleTitle.trim() : undefined,
+      }
+
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create account.")
+      }
+
+      setSuccessMessage("Account created! Signing you in...")
+
+      // Auto sign in as the newly created user
+      await signIn("credentials", {
+        email: email.trim(),
+        password: password.trim(),
+        redirect: false,
+      })
+
+      setTimeout(() => {
+        onSuccess?.()
+        onClose()
+        window.location.reload()
+      }, 1000)
+    } catch (err: any) {
+      setErrorMessage(err.message || "Something went wrong.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ duration: 0.25 }}
+          className="relative w-full max-w-lg bg-card rounded-3xl border border-border shadow-2xl overflow-hidden my-8"
+        >
+          {/* Top Header */}
+          <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 via-card to-card flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-sm">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground tracking-tight">
+                  Create New Account / Persona
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Join a tenant organization or create a management profile
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
+                {errorMessage}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            {/* Account Type Selector */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Account Type
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountType("member")}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    accountType === "member"
+                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                      : "border-border hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <Building2 className="h-4 w-4" />
+                    <span>Tenant Member</span>
+                  </div>
+                  <p className="text-[11px] font-normal opacity-80 mt-1">
+                    Belongs to a team with committee priority
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAccountType("management")}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    accountType === "management"
+                      ? "border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold shadow-xs"
+                      : "border-border hover:bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <Shield className="h-4 w-4" />
+                    <span>Workspace Authority</span>
+                  </div>
+                  <p className="text-[11px] font-normal opacity-80 mt-1">
+                    Manager or Admin with auto-approvals
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Basic Info (Name, Email, Password) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="create-name" className="text-xs font-semibold text-muted-foreground">
+                  Full Name *
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    id="create-name"
+                    placeholder="e.g. Sarah Jenkins"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-8 h-9 text-xs"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="create-email" className="text-xs font-semibold text-muted-foreground">
+                  Work Email *
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    id="create-email"
+                    type="email"
+                    placeholder="sarah@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-8 h-9 text-xs"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="create-password" className="text-xs font-semibold text-muted-foreground">
+                Password *
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  id="create-password"
+                  type="password"
+                  placeholder="Min. 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-8 h-9 text-xs"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Tenant Member Specific Fields */}
+            {accountType === "member" ? (
+              <div className="space-y-3 pt-2 border-t border-border/60">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">Organization</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingNewTeam(!isCreatingNewTeam)}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    {isCreatingNewTeam ? "← Choose Existing Team" : "+ Create New Team"}
+                  </button>
+                </div>
+
+                {isCreatingNewTeam ? (
+                  <div className="space-y-2 p-3 bg-muted/40 rounded-xl border border-border">
+                    <Input
+                      placeholder="New Team Name (e.g. Apex Dynamics)"
+                      value={newTeamName}
+                      onChange={(e) => setNewTeamName(e.target.value)}
+                      className="h-8 text-xs bg-background"
+                      required
+                    />
+                    <Input
+                      placeholder="Description / Department"
+                      value={newTeamDescription}
+                      onChange={(e) => setNewTeamDescription(e.target.value)}
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                ) : (
+                  <select
+                    value={selectedTeamId}
+                    onChange={(e) => setSelectedTeamId(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                  >
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Committee</Label>
+                    <Input
+                      placeholder="e.g. Engineering, Design, PR"
+                      value={committeeName}
+                      onChange={(e) => setCommitteeName(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-muted-foreground">Role Title</Label>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 font-bold text-primary border-primary/30">
+                        Score: {calculatedScore}
+                      </Badge>
+                    </div>
+                    <Input
+                      placeholder="e.g. Lead, Senior, Head, Member"
+                      value={customRoleTitle}
+                      onChange={(e) => setCustomRoleTitle(e.target.value)}
+                      className="h-9 text-xs"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Management Specific Role Selection */
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <Label className="text-xs font-semibold text-muted-foreground">Management Authority Role</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSystemRole("WORKSPACE_MANAGER")}
+                    className={`p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      systemRole === "WORKSPACE_MANAGER"
+                        ? "border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold"
+                        : "border-border hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    Workspace Manager
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSystemRole("ADMIN")}
+                    className={`p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                      systemRole === "ADMIN"
+                        ? "border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold"
+                        : "border-border hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    System Admin
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-10 text-xs font-bold gap-2 shadow-md bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-700 text-white"
+              >
+                {isLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Create & Sign In Now</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  )
+}

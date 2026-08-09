@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Layers,
   LayoutDashboard,
@@ -11,12 +11,14 @@ import {
   Calendar,
   Handshake,
   Menu,
+  X,
   Sparkles,
   LogOut,
   UserCheck,
   Building2,
   LogIn,
   ChevronDown,
+  UserPlus,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -43,10 +45,11 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const [internalOpen, setInternalOpen] = useState(true)
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [personaModalOpen, setPersonaModalOpen] = useState(false)
 
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen
-  const handleToggle = onToggle || (() => setInternalOpen(!internalOpen))
+  const isDesktopOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen
+  const handleDesktopToggle = onToggle || (() => setInternalOpen(!internalOpen))
 
   const isManager =
     session?.user?.systemRole === "WORKSPACE_MANAGER" ||
@@ -63,7 +66,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
     ...(isManager
       ? [
           {
-            label: "Manager Approvals",
+            label: "Approvals",
             href: "/dashboard",
             icon: LayoutDashboard,
             isActive: pathname === "/dashboard",
@@ -96,10 +99,13 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
 
   return (
     <>
+      {/* =========================================================================
+          1. DESKTOP & TABLET SIDEBAR (Hidden on small mobile < 768px)
+          ========================================================================= */}
       <aside
         className={cn(
-          "fixed left-0 top-0 h-full bg-card border-r border-border z-40 transition-all duration-300 flex flex-col justify-between shadow-sm",
-          isOpen ? "w-64" : "w-20"
+          "hidden md:flex fixed left-0 top-0 h-full bg-card border-r border-border z-40 transition-all duration-300 flex-col justify-between shadow-sm",
+          isDesktopOpen ? "w-64" : "w-20"
         )}
       >
         <div className="flex flex-col flex-1 min-h-0">
@@ -109,7 +115,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-lg shadow-md flex-shrink-0">
                 U
               </div>
-              {isOpen && (
+              {isDesktopOpen && (
                 <motion.div
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -127,14 +133,14 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleToggle}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
+              onClick={handleDesktopToggle}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:flex"
             >
               <Menu className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Navigation Items (Regular Page Links) */}
+          {/* Navigation Items */}
           <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon
@@ -147,7 +153,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                       item.isActive
                         ? "bg-primary/10 text-primary font-bold shadow-xs hover:bg-primary/15"
                         : "text-foreground hover:bg-muted text-muted-foreground hover:text-foreground",
-                      !isOpen && "justify-center px-2"
+                      !isDesktopOpen && "justify-center px-2"
                     )}
                   >
                     <Icon
@@ -156,8 +162,8 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                         item.isActive ? "text-primary" : "text-muted-foreground"
                       )}
                     />
-                    <span className={cn(!isOpen && "hidden")}>{item.label}</span>
-                    {item.badge && isOpen && (
+                    <span className={cn(!isDesktopOpen && "hidden")}>{item.label}</span>
+                    {item.badge && isDesktopOpen && (
                       <Badge
                         variant={item.badgeVariant === "manager" ? "outline" : "outline"}
                         className={cn(
@@ -178,7 +184,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
         </div>
 
         {/* User Account / Persona Bottom Section */}
-        <div className={cn("p-3 border-t border-border bg-muted/20", !isOpen && "px-2")}>
+        <div className={cn("p-3 border-t border-border bg-muted/20", !isDesktopOpen && "px-2")}>
           {status === "authenticated" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -186,7 +192,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                   variant="ghost"
                   className={cn(
                     "w-full justify-start gap-3 h-12 p-2 hover:bg-muted rounded-xl",
-                    !isOpen && "justify-center px-2"
+                    !isDesktopOpen && "justify-center px-2"
                   )}
                 >
                   <Avatar className="h-8 w-8 border border-border flex-shrink-0">
@@ -195,14 +201,14 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                       {getInitials(session?.user?.name || "User")}
                     </AvatarFallback>
                   </Avatar>
-                  <div className={cn("flex-1 text-left min-w-0", !isOpen && "hidden")}>
+                  <div className={cn("flex-1 text-left min-w-0", !isDesktopOpen && "hidden")}>
                     <p className="text-xs font-bold text-foreground truncate">{session?.user?.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{session?.user?.email}</p>
                   </div>
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 text-muted-foreground flex-shrink-0",
-                      !isOpen && "hidden"
+                      !isDesktopOpen && "hidden"
                     )}
                   />
                 </Button>
@@ -255,15 +261,211 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
               onClick={() => setPersonaModalOpen(true)}
               className={cn(
                 "w-full justify-center gap-2 text-xs font-semibold bg-card hover:bg-muted",
-                !isOpen && "p-2"
+                !isDesktopOpen && "p-2"
               )}
             >
               <LogIn className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className={cn(!isOpen && "hidden")}>Sign In / Persona</span>
+              <span className={cn(!isDesktopOpen && "hidden")}>Sign In / Persona</span>
             </Button>
           )}
         </div>
       </aside>
+
+      {/* =========================================================================
+          2. MOBILE OFF-CANVAS SLIDE-OVER DRAWER (Visible when opened on phone)
+          ========================================================================= */}
+      <AnimatePresence>
+        {mobileDrawerOpen && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileDrawerOpen(false)}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            />
+
+            {/* Slide-in Menu Panel */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 280 }}
+              className="relative w-4/5 max-w-xs h-full bg-card border-r border-border shadow-2xl flex flex-col justify-between p-4"
+            >
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-base shadow-sm">
+                      U
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-base text-foreground leading-none">Utopi</h3>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase mt-0.5">Workspace</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Nav items */}
+                <div className="space-y-1">
+                  {navItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileDrawerOpen(false)}
+                        className="block"
+                      >
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start gap-3 h-10 text-xs font-semibold rounded-xl",
+                            item.isActive
+                              ? "bg-primary/10 text-primary font-bold shadow-xs"
+                              : "text-foreground hover:bg-muted"
+                          )}
+                        >
+                          <Icon className={cn("h-4 w-4", item.isActive ? "text-primary" : "text-muted-foreground")} />
+                          <span>{item.label}</span>
+                          {item.badge && (
+                            <Badge variant="outline" className="ml-auto text-[9px] py-0 px-1.5 font-bold">
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </Button>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom Persona Area */}
+              <div className="pt-3 border-t border-border space-y-2">
+                <Button
+                  onClick={() => {
+                    setMobileDrawerOpen(false)
+                    setPersonaModalOpen(true)
+                  }}
+                  className="w-full h-10 text-xs font-bold gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                  variant="outline"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>
+                    {status === "authenticated"
+                      ? `Active: ${session?.user?.name?.split(" ")[0]}`
+                      : "Switch Persona / Sign In"}
+                  </span>
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =========================================================================
+          3. FIXED MOBILE BOTTOM NAVIGATION BAR (Screens < md:)
+          ========================================================================= */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-card/95 backdrop-blur-xl border-t border-border z-40 px-2 flex items-center justify-around shadow-lg">
+        {/* Floor Plan */}
+        <Link href="/" className="flex flex-col items-center justify-center flex-1 py-1">
+          <div
+            className={cn(
+              "p-1.5 rounded-xl transition-all",
+              pathname === "/" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Layers className="h-5 w-5" />
+          </div>
+          <span className={cn("text-[10px] font-semibold mt-0.5", pathname === "/" ? "text-primary font-bold" : "text-muted-foreground")}>
+            Floor Plan
+          </span>
+        </Link>
+
+        {/* Schedule */}
+        <Link href="/schedule" className="flex flex-col items-center justify-center flex-1 py-1">
+          <div
+            className={cn(
+              "p-1.5 rounded-xl transition-all",
+              pathname.startsWith("/schedule") ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Calendar className="h-5 w-5" />
+          </div>
+          <span className={cn("text-[10px] font-semibold mt-0.5", pathname.startsWith("/schedule") ? "text-primary font-bold" : "text-muted-foreground")}>
+            Schedule
+          </span>
+        </Link>
+
+        {/* Approvals (for Managers) OR Partners */}
+        {isManager ? (
+          <Link href="/dashboard" className="flex flex-col items-center justify-center flex-1 py-1">
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all relative",
+                pathname.startsWith("/dashboard") ? "bg-purple-500/15 text-purple-600 dark:text-purple-400" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutDashboard className="h-5 w-5" />
+            </div>
+            <span className={cn("text-[10px] font-semibold mt-0.5", pathname.startsWith("/dashboard") ? "text-purple-600 font-bold" : "text-muted-foreground")}>
+              Approvals
+            </span>
+          </Link>
+        ) : (
+          <Link href="/partners" className="flex flex-col items-center justify-center flex-1 py-1">
+            <div
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                pathname.startsWith("/partners") ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Handshake className="h-5 w-5" />
+            </div>
+            <span className={cn("text-[10px] font-semibold mt-0.5", pathname.startsWith("/partners") ? "text-primary font-bold" : "text-muted-foreground")}>
+              Partners
+            </span>
+          </Link>
+        )}
+
+        {/* Teams Directory */}
+        <Link href="/teams" className="flex flex-col items-center justify-center flex-1 py-1">
+          <div
+            className={cn(
+              "p-1.5 rounded-xl transition-all",
+              pathname.startsWith("/teams") ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="h-5 w-5" />
+          </div>
+          <span className={cn("text-[10px] font-semibold mt-0.5", pathname.startsWith("/teams") ? "text-primary font-bold" : "text-muted-foreground")}>
+            Teams
+          </span>
+        </Link>
+
+        {/* Persona Trigger */}
+        <button
+          onClick={() => setPersonaModalOpen(true)}
+          className="flex flex-col items-center justify-center flex-1 py-1 focus:outline-none"
+        >
+          <div className="p-1.5 rounded-xl text-primary bg-primary/10">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold text-primary mt-0.5">
+            Persona
+          </span>
+        </button>
+      </nav>
 
       {/* Persona Switcher Modal */}
       <PersonaSwitcherModal

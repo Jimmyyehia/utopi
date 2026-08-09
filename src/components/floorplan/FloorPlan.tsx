@@ -287,14 +287,17 @@ function RoomSidebar({
       transition={{ type: "spring", damping: 30, stiffness: 320 }}
       className="sidebar-panel flex flex-col shadow-2xl border-l border-border bg-card"
     >
-      <div className="flex items-center justify-between p-5 border-b border-border bg-muted/20">
+      {/* Mobile Top Drag Indicator */}
+      <div className="sm:hidden w-12 h-1.5 rounded-full bg-muted-foreground/30 mx-auto mt-2.5 -mb-1" />
+
+      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-muted/20">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 rounded-xl">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h3 className="font-extrabold text-foreground text-lg tracking-tight">{room.name}</h3>
-            <p className="text-xs text-muted-foreground font-medium">Capacity: {room.capacity} Max • 9 AM – 10 PM</p>
+            <h3 className="font-extrabold text-foreground text-base sm:text-lg tracking-tight">{room.name}</h3>
+            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Capacity: {room.capacity} Max • 9 AM – 10 PM</p>
           </div>
         </div>
         <StatusIndicator status={room.status} />
@@ -825,13 +828,13 @@ export function FloorPlan({
 
   return (
     <div className="relative w-full h-full flex flex-col space-y-3" suppressHydrationWarning>
-      {/* Top Amenity Filter Toolbar */}
+      {/* Search & Feature Filter Bar */}
       <div
-        className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-xs"
+        className="flex items-center justify-between gap-2 p-2 bg-card/90 backdrop-blur-md rounded-2xl border border-border/80 shadow-xs overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap"
         suppressHydrationWarning
       >
-        <div className="flex items-center gap-2 flex-wrap" suppressHydrationWarning>
-          <div className="relative w-44 sm:w-56" suppressHydrationWarning>
+        <div className="flex items-center gap-2 flex-nowrap sm:flex-wrap flex-shrink-0" suppressHydrationWarning>
+          <div className="relative w-36 sm:w-52 flex-shrink-0" suppressHydrationWarning>
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search spaces..."
@@ -848,7 +851,7 @@ export function FloorPlan({
             size="sm"
             variant={filterAC ? "primary" : "outline"}
             onClick={() => setFilterAC(!filterAC)}
-            className="h-8 text-xs gap-1.5 rounded-lg"
+            className="h-8 text-xs gap-1.5 rounded-lg flex-shrink-0"
           >
             <Snowflake className="h-3.5 w-3.5" />
             <span>Air Conditioned</span>
@@ -859,7 +862,7 @@ export function FloorPlan({
             size="sm"
             variant={filterScreen ? "primary" : "outline"}
             onClick={() => setFilterScreen(!filterScreen)}
-            className="h-8 text-xs gap-1.5 rounded-lg"
+            className="h-8 text-xs gap-1.5 rounded-lg flex-shrink-0"
           >
             <Monitor className="h-3.5 w-3.5" />
             <span>Screen/TV</span>
@@ -870,7 +873,7 @@ export function FloorPlan({
             size="sm"
             variant={filterBalcony ? "primary" : "outline"}
             onClick={() => setFilterBalcony(!filterBalcony)}
-            className="h-8 text-xs gap-1.5 rounded-lg"
+            className="h-8 text-xs gap-1.5 rounded-lg flex-shrink-0"
           >
             <TreePine className="h-3.5 w-3.5" />
             <span>Balcony</span>
@@ -881,7 +884,7 @@ export function FloorPlan({
             size="sm"
             variant={filterLarge ? "primary" : "outline"}
             onClick={() => setFilterLarge(!filterLarge)}
-            className="h-8 text-xs gap-1.5 rounded-lg"
+            className="h-8 text-xs gap-1.5 rounded-lg flex-shrink-0"
           >
             <Users className="h-3.5 w-3.5" />
             <span>25+ Capacity</span>
@@ -900,7 +903,7 @@ export function FloorPlan({
               setFilterAC(false)
               setFilterLarge(false)
             }}
-            className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-lg"
+            className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-lg flex-shrink-0"
           >
             Reset Filters
           </Button>
@@ -908,10 +911,10 @@ export function FloorPlan({
       </div>
 
       {/* SVG Canvas Area: Clean Architectural Blueprint */}
-      <div className="relative w-full flex-1 flex items-center justify-center min-h-[540px]">
+      <div className="relative w-full flex-1 flex items-center justify-center min-h-[360px] sm:min-h-[500px] overflow-hidden">
         <svg
           viewBox="0 0 960 520"
-          className="w-full max-w-5xl h-auto max-h-[78vh] drop-shadow-md select-none rounded-2xl"
+          className="w-full max-w-5xl h-auto max-h-[72vh] drop-shadow-md select-none rounded-2xl"
           preserveAspectRatio="xMidYMid meet"
           onMouseMove={(e) => {
             setTooltipPosition({ x: e.clientX, y: e.clientY })

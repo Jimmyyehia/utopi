@@ -252,22 +252,28 @@ export default function HomePage() {
       {/* Main Floor Plan Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col overflow-hidden transition-all duration-300",
-          sidebarOpen ? "ml-64" : "ml-20"
+          "flex-1 flex flex-col overflow-hidden transition-all duration-300 pb-16 md:pb-0",
+          sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
         {/* Top Navigation Bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
-              Interactive Floor Plan
-            </h1>
-            <Badge variant="available" className="text-[11px] font-semibold py-0.5">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="md:hidden w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-sm shadow-xs flex-shrink-0">
+              U
+            </div>
+            <div>
+              <h1 className="text-base sm:text-xl font-bold text-foreground tracking-tight leading-tight">
+                Floor Plan
+              </h1>
+              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">Tap any room to book</p>
+            </div>
+            <Badge variant="available" className="hidden sm:inline-flex text-[11px] font-semibold py-0.5">
               Live Map
             </Badge>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Quick Demo Persona Switcher Trigger */}
             <Button
               variant="outline"
