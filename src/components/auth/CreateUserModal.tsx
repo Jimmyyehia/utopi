@@ -12,13 +12,13 @@ import {
   Shield,
   CheckCircle2,
   X,
+  Clock,
 } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { calculatePriorityScore } from "@/lib/utils"
 
 interface TeamOption {
   id: string
@@ -30,6 +30,16 @@ const DEFAULT_WORKSPACE_TEAMS: TeamOption[] = [
   { id: "hackerrank-aufs", name: "HackerRank AUFS" },
   { id: "phd", name: "PHD" },
   { id: "nexus-labs", name: "Nexus Labs" },
+]
+
+export const PREDETERMINED_ROLES = [
+  "Member",
+  "Senior Member",
+  "Lead / Coordinator",
+  "Head of Committee",
+  "Director / President",
+  "Founder / Co-Founder",
+  "Guest / Contributor",
 ]
 
 interface CreateUserModalProps {
@@ -52,10 +62,12 @@ export function CreateUserModal({
   const [systemRole, setSystemRole] = useState<"USER" | "WORKSPACE_MANAGER" | "ADMIN">("USER")
 
   const [teams, setTeams] = useState<TeamOption[]>(DEFAULT_WORKSPACE_TEAMS)
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("hawk-insight")
+  // Not required by default: empty string means independent / no team
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
 
   const [committeeName, setCommitteeName] = useState("Engineering")
-  const [customRoleTitle, setCustomRoleTitle] = useState("Member")
+  const [selectedRole, setSelectedRole] = useState<string>("Member")
+  const [customRoleInput, setCustomRoleInput] = useState<string>("")
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -78,24 +90,20 @@ export function CreateUserModal({
                   ])
               ).values()
             )
-            // Combine with default workspace organizations
             const combined = Array.from(
               new Map([...DEFAULT_WORKSPACE_TEAMS, ...mapped].map((t) => [t.id, t])).values()
             )
             setTeams(combined)
-            if (!selectedTeamId || !combined.find((t) => t.id === selectedTeamId)) {
-              setSelectedTeamId(combined[0]?.id || "hawk-insight")
-            }
           }
         })
         .catch(() => {
           setTeams(DEFAULT_WORKSPACE_TEAMS)
-          setSelectedTeamId("hawk-insight")
         })
     }
-  }, [isOpen, selectedTeamId])
+  }, [isOpen])
 
-  const calculatedScore = calculatePriorityScore(customRoleTitle)
+  const isCustomRole = selectedRole === "__custom__"
+  const finalRoleTitle = isCustomRole ? customRoleInput.trim() : selectedRole
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,6 +115,11 @@ export function CreateUserModal({
       return
     }
 
+    if (selectedTeamId && isCustomRole && !customRoleInput.trim()) {
+      setErrorMessage("Please specify your desired custom role title.")
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -115,9 +128,10 @@ export function CreateUserModal({
         email: email.trim(),
         password: password.trim(),
         systemRole: accountType === "management" ? systemRole : "USER",
-        teamId: accountType === "member" ? selectedTeamId : undefined,
-        committeeName: accountType === "member" ? committeeName.trim() : undefined,
-        customRoleTitle: accountType === "member" ? customRoleTitle.trim() : undefined,
+        teamId: accountType === "member" && selectedTeamId ? selectedTeamId : undefined,
+        committeeName: accountType === "member" && selectedTeamId ? committeeName.trim() : undefined,
+        customRoleTitle: accountType === "member" && selectedTeamId ? finalRoleTitle : undefined,
+        roleStatus: isCustomRole ? "PENDING" : "APPROVED",
       }
 
       const res = await fetch("/api/auth/register", {
@@ -132,7 +146,11 @@ export function CreateUserModal({
         throw new Error(data.error || "Failed to create user account.")
       }
 
-      setSuccessMessage("Account created! Signing you in...")
+      if (isCustomRole) {
+        setSuccessMessage("Account created! Your custom role has been submitted for manager approval.")
+      } else {
+        setSuccessMessage("Account created! Signing you in...")
+      }
 
       // Auto sign in as the newly created user
       await signIn("credentials", {
@@ -145,7 +163,7 @@ export function CreateUserModal({
         onSuccess?.()
         onClose()
         window.location.reload()
-      }, 1000)
+      }, 1200)
     } catch (err: any) {
       setErrorMessage(err.message || "Something went wrong.")
     } finally {
@@ -176,7 +194,7 @@ export function CreateUserModal({
                   Create User Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Register a tenant member or management profile
+                  Register a tenant member, independent user, or management profile
                 </p>
               </div>
             </div>
@@ -198,8 +216,8 @@ export function CreateUserModal({
             )}
 
             {successMessage && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                 <span>{successMessage}</span>
               </div>
             )}
@@ -221,10 +239,10 @@ export function CreateUserModal({
                 >
                   <div className="flex items-center gap-2 text-xs font-bold">
                     <Building2 className="h-4 w-4" />
-                    <span>Tenant Member</span>
+                    <span>Workspace Member</span>
                   </div>
                   <p className="text-[11px] font-normal opacity-80 mt-1">
-                    Belongs to an active organization
+                    Independent or tenant organization member
                   </p>
                 </button>
 
@@ -276,7 +294,7 @@ export function CreateUserModal({
                   <Input
                     id="user-email"
                     type="email"
-                    placeholder="sarah@hawkinsight.com"
+                    placeholder="sarah@organization.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-8 h-9 text-xs"
@@ -304,12 +322,14 @@ export function CreateUserModal({
               </div>
             </div>
 
-            {/* Tenant Member Organization Selector */}
+            {/* Member Organization Selector (Optional) */}
             {accountType === "member" ? (
               <div className="space-y-3 pt-2 border-t border-border/60">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-muted-foreground">Organization</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Organization (Optional)
+                    </Label>
                     {onRequestNewTeam && (
                       <button
                         type="button"
@@ -328,6 +348,7 @@ export function CreateUserModal({
                     onChange={(e) => setSelectedTeamId(e.target.value)}
                     className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                   >
+                    <option value="">-- None (Independent / Not assigned to a team) --</option>
                     {teams.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
@@ -336,33 +357,66 @@ export function CreateUserModal({
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Committee</Label>
-                    <Input
-                      placeholder="e.g. PR, Engineering"
-                      value={committeeName}
-                      onChange={(e) => setCommitteeName(e.target.value)}
-                      className="h-9 text-xs"
-                    />
-                  </div>
+                {/* Show Committee and Role selection only if an organization is chosen */}
+                {selectedTeamId ? (
+                  <div className="space-y-3 p-3 bg-muted/40 rounded-2xl border border-border">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Committee</Label>
+                        <Input
+                          placeholder="e.g. PR, Engineering"
+                          value={committeeName}
+                          onChange={(e) => setCommitteeName(e.target.value)}
+                          className="h-9 text-xs bg-background"
+                        />
+                      </div>
 
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-muted-foreground">Role Title</Label>
-                      <Badge variant="outline" className="text-[10px] py-0 px-1 font-bold text-primary border-primary/30">
-                        Score: {calculatedScore}
-                      </Badge>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Role</Label>
+                        <select
+                          value={selectedRole}
+                          onChange={(e) => setSelectedRole(e.target.value)}
+                          className="w-full h-9 rounded-xl border border-input bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
+                        >
+                          {PREDETERMINED_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                          <option value="__custom__">+ Custom Role (Pending Approval)</option>
+                        </select>
+                      </div>
                     </div>
-                    <Input
-                      placeholder="e.g. Lead, Senior, Head"
-                      value={customRoleTitle}
-                      onChange={(e) => setCustomRoleTitle(e.target.value)}
-                      className="h-9 text-xs"
-                      required
-                    />
+
+                    {/* Custom Role Input */}
+                    {isCustomRole && (
+                      <div className="space-y-2 pt-1">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground">
+                            Custom Role Title *
+                          </Label>
+                          <Input
+                            placeholder="e.g. Chief Innovation Architect"
+                            value={customRoleInput}
+                            onChange={(e) => setCustomRoleInput(e.target.value)}
+                            className="h-9 text-xs bg-background"
+                            required
+                          />
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px] flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                          <span>
+                            Your account will be created immediately. The custom role will show as <strong>Pending Approval</strong> until confirmed by a workspace manager.
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Independent members can browse rooms and submit reservations directly.
+                  </p>
+                )}
               </div>
             ) : (
               /* Management Specific Role Selection */

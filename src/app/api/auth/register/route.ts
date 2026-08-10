@@ -119,6 +119,20 @@ export async function POST(request: NextRequest) {
           },
         })
       }
+    } else if (targetTeamId && customRoleTitle && body.roleStatus === "PENDING") {
+      const managers = await prisma.user.findMany({
+        where: { systemRole: { in: ["WORKSPACE_MANAGER", "ADMIN", "OWNER"] } },
+      })
+
+      for (const manager of managers) {
+        await prisma.notification.create({
+          data: {
+            userId: manager.id,
+            title: "Custom Role Review Required",
+            message: `${newUser.name || newUser.email} registered with custom role "${customRoleTitle}" awaiting confirmation.`,
+          },
+        })
+      }
     }
 
     return NextResponse.json(

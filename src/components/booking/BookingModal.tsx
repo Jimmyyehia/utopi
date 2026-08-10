@@ -510,7 +510,7 @@ export function BookingModal({
                       Booking Request Preview
                     </span>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      Priority Score: {calculatePriorityScore(selectedRole.customRoleTitle)} / 100
+                      Role: {selectedRole.customRoleTitle}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-muted-foreground pt-1">

@@ -475,9 +475,14 @@ export default function ApprovalDashboard() {
                             {team.description}
                           </p>
                         )}
-                        <p className="text-[11px] text-muted-foreground">
-                          Requested by: <span className="font-bold text-foreground">{requesterName}</span> ({requesterEmail}) • Desired Role: <span className="font-medium text-primary">{roleTitle}</span>
-                        </p>
+                        <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
+                          <span className="text-muted-foreground">
+                            Requested by: <strong className="text-foreground">{requesterName}</strong> {requesterEmail ? `(${requesterEmail})` : ""}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold text-purple-600 border-purple-500/30 bg-purple-500/10">
+                            Desired Role: {roleTitle}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -514,10 +519,10 @@ export default function ApprovalDashboard() {
           <CardHeader className="p-5 border-b border-border bg-muted/20 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg font-bold text-foreground">
-                Priority Approval Queue ({filteredQueue.length})
+                Workspace Approval Queue ({filteredQueue.length})
               </CardTitle>
               <CardDescription className="text-xs">
-                Requests are sorted automatically by role hierarchy & priority score
+                Pending room reservation requests awaiting manager approval
               </CardDescription>
             </div>
             {queue.some((q) => q.hasConflict) && (
@@ -556,7 +561,7 @@ export default function ApprovalDashboard() {
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <h4 className="font-bold text-base text-foreground">{item.room.name}</h4>
                           <Badge variant="outline" className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
-                            Priority: {item.priorityScore} / 100
+                            {item.roleTitleUsed || "Member"}
                           </Badge>
                           {item.hasConflict && (
                             <Badge variant="destructive" className="text-xs font-semibold gap-1">

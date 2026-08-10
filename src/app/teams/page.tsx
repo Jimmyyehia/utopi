@@ -246,15 +246,17 @@ export default function TeamsPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCreateTeamOpen(true)}
-              className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20"
-            >
-              <Building2 className="h-3.5 w-3.5" />
-              <span>{isManager ? "+ Add Team" : "+ Request Team"}</span>
-            </Button>
+            {session?.user && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCreateTeamOpen(true)}
+                className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                <span>{isManager ? "+ Add Team" : "+ Request Team"}</span>
+              </Button>
+            )}
 
             <Button
               size="sm"
@@ -288,8 +290,8 @@ export default function TeamsPage() {
               />
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Sorted by Role Priority Score</span>
-              <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+              <span>Active Organization Members</span>
+              <Users className="h-3.5 w-3.5 text-primary" />
             </div>
           </div>
 
@@ -308,7 +310,7 @@ export default function TeamsPage() {
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs py-1 px-3 bg-primary/10 text-primary border-primary/30 font-bold self-start sm:self-center">
-                    {team.members.length} Active Role(s)
+                    {team.members.length} Member(s)
                   </Badge>
                 </div>
 
@@ -325,21 +327,17 @@ export default function TeamsPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-foreground truncate">{member.userName}</p>
-                            <p className="text-xs text-primary font-semibold truncate">{member.customRoleTitle}</p>
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-semibold text-primary border-primary/30 bg-primary/5 mt-0.5">
+                              {member.customRoleTitle}
+                            </Badge>
                             {member.committeeName ? (
-                              <p className="text-[10px] text-muted-foreground truncate">
+                              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                                 Committee: {member.committeeName}
                               </p>
                             ) : (
-                              <p className="text-[10px] text-muted-foreground/75 truncate">General Member</p>
+                              <p className="text-[10px] text-muted-foreground/75 truncate mt-0.5">General Member</p>
                             )}
                           </div>
-                        </div>
-
-                        <div className="flex flex-col items-end flex-shrink-0">
-                          <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-mono font-bold bg-card border-border">
-                            Score: {member.priorityScore}
-                          </Badge>
                         </div>
                       </div>
                     ))}

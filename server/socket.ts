@@ -11,12 +11,24 @@ const dbPath = join(__dirname, "..", "dev.db")
 const httpServer = createServer()
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://192.168.192.1:3000"],
+    origin: "*",
     methods: ["GET", "POST"],
   },
 })
 
-const db = createClient({ url: `file:${dbPath}` })
+const dbUrl = process.env.DATABASE_URL || `file:${dbPath}`
+const dbAuthToken = process.env.DATABASE_AUTH_TOKEN || undefined
+
+let db: any = null
+try {
+  db = createClient({
+    url: dbUrl,
+    authToken: dbAuthToken,
+  })
+} catch (e) {
+  console.warn("LibSQL client init fallback:", e)
+  db = createClient({ url: `file:${dbPath}` })
+}
 
 interface BookingUpdate {
   type: "booking_created" | "booking_updated" | "booking_deleted"
@@ -30,26 +42,26 @@ interface RoomStatusUpdate {
 }
 
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id)
+  console.log("Client connected to WebSockets:", socket.id)
 
   socket.on("join_room", (roomId: string) => {
     socket.join(`room:${roomId}`)
-    console.log(`Client ${socket.id} joined room:${roomId}`)
   })
 
   socket.on("leave_room", (roomId: string) => {
     socket.leave(`room:${roomId}`)
-    console.log(`Client ${socket.id} left room:${roomId}`)
   })
 
   socket.on("subscribe_bookings", () => {
     socket.join("bookings")
-    console.log(`Client ${socket.id} subscribed to bookings`)
   })
 
   socket.on("unsubscribe_bookings", () => {
     socket.leave("bookings")
-    console.log(`Client ${socket.id} unsubscribed from bookings`)
+  })
+
+  socket.on("subscribe_teams", () => {
+    socket.join("teams")
   })
 
   socket.on("disconnect", () => {
@@ -59,9 +71,8 @@ io.on("connection", (socket) => {
 
 async function broadcastBookingUpdate(update: BookingUpdate) {
   io.to("bookings").emit("booking_update", update)
-  
-  if (update.booking.roomId) {
-    io.to(`room:${update.booking.roomId}`).emit("booking_update", update)
+  if (update.booking && (update.booking as any).roomId) {
+    io.to(`room:${(update.booking as any).roomId}`).emit("booking_update", update)
   }
 }
 
@@ -71,40 +82,47 @@ async function broadcastRoomStatusUpdate(update: RoomStatusUpdate) {
 }
 
 async function checkRoomStatus(roomId: string) {
-  const now = new Date().toISOString()
-  const result = await db.execute({
-    sql: `SELECT * FROM bookings WHERE roomId = ? AND status IN ('APPROVED', 'PENDING') AND startTime <= ? AND endTime > ? ORDER BY priorityScore DESC, startTime ASC LIMIT 1`,
-    args: [roomId, now, now],
-  })
+  if (!db) return "available"
+  try {
+    const now = new Date().toISOString()
+    const result = await db.execute({
+      sql: `SELECT * FROM bookings WHERE roomId = ? AND status IN ('APPROVED', 'PENDING') AND startTime <= ? AND endTime > ? ORDER BY priorityScore DESC, startTime ASC LIMIT 1`,
+      args: [roomId, now, now],
+    })
 
-  let status: "available" | "occupied" | "pending" | "maintenance" = "available"
-  
-  if (result.rows.length > 0) {
-    const booking = result.rows[0]
-    if (booking.status === "APPROVED") status = "occupied"
-    else if (booking.status === "PENDING") status = "pending"
+    let status: "available" | "occupied" | "pending" | "maintenance" = "available"
+    if (result.rows && result.rows.length > 0) {
+      const booking = result.rows[0]
+      if (booking.status === "APPROVED") status = "occupied"
+      else if (booking.status === "PENDING") status = "pending"
+    }
+    return status
+  } catch {
+    return "available"
   }
-
-  return status
 }
 
+// Background status poller
 setInterval(async () => {
   try {
+    if (!db) return
     const rooms = await db.execute("SELECT id FROM rooms")
-    for (const room of rooms.rows) {
-      const status = await checkRoomStatus(room.id as string)
-      await broadcastRoomStatusUpdate({
-        type: "room_status_changed",
-        roomId: room.id as string,
-        status,
-      })
+    if (rooms.rows) {
+      for (const room of rooms.rows) {
+        const status = await checkRoomStatus(room.id as string)
+        await broadcastRoomStatusUpdate({
+          type: "room_status_changed",
+          roomId: room.id as string,
+          status,
+        })
+      }
     }
   } catch (error) {
-    console.error("Error checking room statuses:", error)
+    // Ignore polling errors
   }
 }, 30000)
 
-const PORT = process.env.PORT || 3001
+const PORT = Number(process.env.PORT || process.env.SOCKET_PORT || 3001)
 httpServer.listen(PORT, () => {
   console.log(`Socket.io server running on port ${PORT}`)
 })

@@ -11,6 +11,7 @@ import {
   Briefcase,
   Users,
   Clock,
+  UserCheck,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
   const [description, setDescription] = useState("")
   const [committeeName, setCommitteeName] = useState("Leadership & Strategy")
   const [customRoleTitle, setCustomRoleTitle] = useState("Founder / Lead")
+  const [otherRoles, setOtherRoles] = useState("")
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -61,6 +63,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
           description: description.trim() || undefined,
           committeeName: committeeName.trim() || undefined,
           customRoleTitle: customRoleTitle.trim() || "Founder / Lead",
+          otherRoles: otherRoles.trim() || undefined,
         }),
       })
 
@@ -83,6 +86,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
         onClose()
         setName("")
         setDescription("")
+        setOtherRoles("")
       }, 1500)
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to create organization.")
@@ -144,6 +148,22 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
               </div>
             )}
 
+            {/* Requester Identity Pill */}
+            {session?.user && (
+              <div className="p-2.5 rounded-2xl bg-muted/40 border border-border flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <UserCheck className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground truncate">{session.user.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{session.user.email}</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[9px] font-bold text-primary border-primary/30 flex-shrink-0">
+                  Requesting User
+                </Badge>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="team-name" className="text-xs font-semibold text-muted-foreground">
                 Organization / Team Name *
@@ -172,7 +192,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
                   placeholder="Briefly describe the team's purpose and activities within Utopi..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full pl-8 p-2.5 text-xs rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[70px]"
+                  className="w-full pl-8 p-2.5 text-xs rounded-xl border border-input bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[60px]"
                 />
               </div>
             </div>
@@ -189,7 +209,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Your Role Title</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">Your Requested Role</Label>
                 <Input
                   placeholder="e.g. Founder, Head"
                   value={customRoleTitle}
@@ -200,14 +220,29 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
               </div>
             </div>
 
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Other Roles in This Organization
+              </Label>
+              <Input
+                placeholder="e.g. Co-Founder, Tech Lead, PR Director, Designer"
+                value={otherRoles}
+                onChange={(e) => setOtherRoles(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Optional: List other member titles that will be part of this team.
+              </p>
+            </div>
+
             {!isManager && (
               <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-200 space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-purple-600" />
-                  Approval Workflow
+                  Manager Review Workflow
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Workspace management will review your request on the approvals dashboard. You will receive an automated email notification as soon as it is approved.
+                  Workspace management will review your requested role and team details on the approvals dashboard. You will receive an automated email confirmation once approved.
                 </p>
               </div>
             )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -284,13 +284,6 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                 >
                   <UserPlus className="h-4 w-4 mr-2 text-primary" />
                   <span>+ Create User</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setCreateTeamModalOpen(true)}
-                  className="cursor-pointer text-xs font-semibold py-2"
-                >
-                  <Building2 className="h-4 w-4 mr-2 text-purple-600" />
-                  <span>Request Organization</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

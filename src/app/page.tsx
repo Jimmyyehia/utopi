@@ -22,6 +22,7 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { FloorPlan } from "@/components/floorplan/FloorPlan"
 import { BookingModal } from "@/components/booking/BookingModal"
+import { useRealtimeBookings } from "@/hooks/useSocket"
 import { CreateUserModal } from "@/components/auth/CreateUserModal"
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { Button } from "@/components/ui/button"
@@ -131,7 +132,7 @@ const DEFAULT_ROOMS: Room[] = [
     svgPolygonCoords: "M115,232 L275,232 L275,475 L115,475 Z",
     svgX: 195,
     svgY: 353,
-    color: "#2D6A4F",
+    color: "#52D1A3",
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -148,6 +149,7 @@ export default function HomePage() {
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
+  const realtimeBookings = useRealtimeBookings(bookings)
   const [userRoles, setUserRoles] = useState<(UserTeamRole & { team: Team })[]>([])
   const [rooms, setRooms] = useState<Room[]>(DEFAULT_ROOMS)
   const [notifications, setNotifications] = useState<
@@ -468,7 +470,7 @@ export default function HomePage() {
             rooms={floorPlanRooms}
             selectedRoom={selectedRoom}
             onRoomSelect={setSelectedRoom}
-            bookings={bookings}
+            bookings={realtimeBookings}
             currentTime={currentTime}
           />
         </div>

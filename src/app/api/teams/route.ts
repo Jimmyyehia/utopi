@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, committeeName, customRoleTitle } = body
+    const { name, description, committeeName, customRoleTitle, otherRoles } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: "Team name is required." }, { status: 400 })
@@ -105,11 +105,18 @@ export async function POST(request: NextRequest) {
     // Management teams are auto-approved, member team requests require approval
     const teamStatus = isManager ? "APPROVED" : "PENDING"
 
+    let combinedDescription = description?.trim() || ""
+    if (otherRoles && otherRoles.trim()) {
+      combinedDescription = combinedDescription
+        ? `${combinedDescription}\n[Roles: ${otherRoles.trim()}]`
+        : `[Roles: ${otherRoles.trim()}]`
+    }
+
     const team = await prisma.team.create({
       data: {
         id: generatedTeamId,
         name: name.trim(),
-        description: description?.trim() || null,
+        description: combinedDescription || null,
         status: teamStatus,
         requestedBy: session.user.email,
       },
