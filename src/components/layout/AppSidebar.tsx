@@ -33,7 +33,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu"
-import { PersonaSwitcherModal } from "@/components/auth/PersonaSwitcherModal"
+import { CreateUserModal } from "@/components/auth/CreateUserModal"
+import { CreateTeamModal } from "@/components/teams/CreateTeamModal"
 import { cn, getInitials } from "@/lib/utils"
 
 interface AppSidebarProps {
@@ -46,7 +47,8 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
   const { data: session, status } = useSession()
   const [internalOpen, setInternalOpen] = useState(true)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
-  const [personaModalOpen, setPersonaModalOpen] = useState(false)
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false)
+  const [createTeamModalOpen, setCreateTeamModalOpen] = useState(false)
 
   const isDesktopOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen
   const handleDesktopToggle = onToggle || (() => setInternalOpen(!internalOpen))
@@ -183,7 +185,7 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
           </nav>
         </div>
 
-        {/* User Account / Persona Bottom Section */}
+        {/* User Account / Persona Bottom Section (Permanent Production Profile & Identity Management) */}
         <div className={cn("p-3 border-t border-border bg-muted/20", !isDesktopOpen && "px-2")}>
           {status === "authenticated" ? (
             <DropdownMenu>
@@ -213,42 +215,48 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                   />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56 p-1.5 shadow-xl">
+              <DropdownMenuContent align="end" side="top" className="w-64 p-1.5 shadow-xl">
                 <DropdownMenuLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-2 py-1">
-                  Current Persona
+                  My Profile & Identity
                 </DropdownMenuLabel>
-                <div className="px-2 py-1.5 text-xs text-foreground bg-muted/40 rounded-md mb-1">
-                  <p className="font-semibold">{session?.user?.name}</p>
-                  <p className="text-muted-foreground text-[11px]">{session?.user?.systemRole}</p>
+                <div className="px-2.5 py-2 text-xs text-foreground bg-muted/40 rounded-xl mb-1.5 space-y-0.5">
+                  <p className="font-bold text-sm">{session?.user?.name}</p>
+                  <p className="text-muted-foreground text-[11px] truncate">{session?.user?.email}</p>
+                  <Badge variant="outline" className="text-[10px] mt-1 font-mono">
+                    {session?.user?.systemRole}
+                  </Badge>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  {isManager && (
+                  <DropdownMenuItem
+                    onClick={() => setCreateUserModalOpen(true)}
+                    className="cursor-pointer font-medium text-xs py-2"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2 text-primary" />
+                    <span>+ Create User</span>
+                  </DropdownMenuItem>
+
+                  {isManager ? (
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className="cursor-pointer">
-                        <LayoutDashboard className="h-4 w-4 mr-2" />
-                        Manager Approvals
+                      <Link href="/dashboard" className="cursor-pointer font-medium text-xs py-2">
+                        <Building2 className="h-4 w-4 mr-2 text-purple-600" />
+                        <span>Approve Organization Requests</span>
                       </Link>
                     </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => setCreateTeamModalOpen(true)}
+                      className="cursor-pointer font-medium text-xs py-2"
+                    >
+                      <Building2 className="h-4 w-4 mr-2 text-purple-600" />
+                      <span>Request Organization</span>
+                    </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <Link href="/teams" className="cursor-pointer">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Teams Directory
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setPersonaModalOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Switch Persona
-                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="text-destructive focus:bg-destructive/10 cursor-pointer"
+                  className="text-destructive focus:bg-destructive/10 cursor-pointer text-xs py-2 font-semibold"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -256,17 +264,43 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              variant="outline"
-              onClick={() => setPersonaModalOpen(true)}
-              className={cn(
-                "w-full justify-center gap-2 text-xs font-semibold bg-card hover:bg-muted",
-                !isDesktopOpen && "p-2"
-              )}
-            >
-              <LogIn className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className={cn(!isDesktopOpen && "hidden")}>Sign In / Persona</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-center gap-2 text-xs font-semibold bg-card hover:bg-muted shadow-xs",
+                    !isDesktopOpen && "p-2"
+                  )}
+                >
+                  <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className={cn(!isDesktopOpen && "hidden")}>Create User / Sign In</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-56 p-1.5 shadow-xl">
+                <DropdownMenuItem
+                  onClick={() => setCreateUserModalOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-2"
+                >
+                  <UserPlus className="h-4 w-4 mr-2 text-primary" />
+                  <span>+ Create User</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setCreateTeamModalOpen(true)}
+                  className="cursor-pointer text-xs font-semibold py-2"
+                >
+                  <Building2 className="h-4 w-4 mr-2 text-purple-600" />
+                  <span>Request Organization</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/auth/signin" className="cursor-pointer text-xs py-2 font-semibold text-primary">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    <span>Sign In</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </aside>
@@ -350,23 +384,50 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                 </div>
               </div>
 
-              {/* Bottom Persona Area */}
+              {/* Bottom Profile Area for Mobile Drawer */}
               <div className="pt-3 border-t border-border space-y-2">
-                <Button
-                  onClick={() => {
-                    setMobileDrawerOpen(false)
-                    setPersonaModalOpen(true)
-                  }}
-                  className="w-full h-10 text-xs font-bold gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                  variant="outline"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>
-                    {status === "authenticated"
-                      ? `Active: ${session?.user?.name?.split(" ")[0]}`
-                      : "Switch Persona / Sign In"}
-                  </span>
-                </Button>
+                {status === "authenticated" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5 p-2 rounded-xl bg-muted/40 border border-border">
+                      <Avatar className="h-8 w-8 rounded-lg ring-1 ring-primary/30">
+                        <AvatarImage src={session?.user?.image || undefined} />
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
+                          {session?.user?.name ? getInitials(session.user.name) : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">{session?.user?.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{session?.user?.email}</p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="w-full h-9 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20"
+                      variant="outline"
+                    >
+                      <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                      <span>Sign Out</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/auth/signin" className="w-full">
+                      <Button variant="outline" className="w-full h-9 text-xs font-semibold">
+                        <LogIn className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Sign In</span>
+                      </Button>
+                    </Link>
+                    <Button
+                      onClick={() => {
+                        setMobileDrawerOpen(false)
+                        setCreateUserModalOpen(true)
+                      }}
+                      className="w-full h-9 text-xs font-bold bg-primary text-primary-foreground"
+                    >
+                      <span>Create User</span>
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -453,24 +514,58 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
           </span>
         </Link>
 
-        {/* Persona Trigger */}
-        <button
-          onClick={() => setPersonaModalOpen(true)}
-          className="flex flex-col items-center justify-center flex-1 py-1 focus:outline-none"
-        >
-          <div className="p-1.5 rounded-xl text-primary bg-primary/10">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <span className="text-[10px] font-semibold text-primary mt-0.5">
-            Persona
-          </span>
-        </button>
+        {/* Account / Auth Trigger for Mobile */}
+        {session?.user ? (
+          <button
+            onClick={() => setCreateUserModalOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 py-1 focus:outline-none"
+          >
+            <div className="p-1 rounded-lg text-primary bg-primary/10">
+              <Avatar className="h-5 w-5 rounded-md">
+                <AvatarImage src={session.user.image || undefined} />
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-[9px]">
+                  {session.user.name ? getInitials(session.user.name) : "U"}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <span className="text-[10px] font-semibold text-primary mt-0.5 truncate max-w-[50px]">
+              Profile
+            </span>
+          </button>
+        ) : (
+          <Link
+            href="/auth/signin"
+            className="flex flex-col items-center justify-center flex-1 py-1 focus:outline-none"
+          >
+            <div className="p-1.5 rounded-xl text-primary bg-primary/10">
+              <LogIn className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-semibold text-primary mt-0.5">
+              Sign In
+            </span>
+          </Link>
+        )}
       </nav>
 
-      {/* Persona Switcher Modal */}
-      <PersonaSwitcherModal
-        isOpen={personaModalOpen}
-        onClose={() => setPersonaModalOpen(false)}
+      {/* User Registration Modal */}
+      <CreateUserModal
+        isOpen={createUserModalOpen}
+        onClose={() => setCreateUserModalOpen(false)}
+        onRequestNewTeam={() => setCreateTeamModalOpen(true)}
+        onSuccess={() => {
+          setCreateUserModalOpen(false)
+          window.location.reload()
+        }}
+      />
+
+      {/* Separate Organization Creation / Request Modal */}
+      <CreateTeamModal
+        isOpen={createTeamModalOpen}
+        onClose={() => setCreateTeamModalOpen(false)}
+        onSuccess={() => {
+          setCreateTeamModalOpen(false)
+          window.location.reload()
+        }}
       />
     </>
   )

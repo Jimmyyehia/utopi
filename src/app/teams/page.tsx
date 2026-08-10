@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   Users,
@@ -24,6 +24,7 @@ import { cn, getInitials } from "@/lib/utils"
 
 import { useSession } from "next-auth/react"
 import { CreateUserModal } from "@/components/auth/CreateUserModal"
+import { CreateTeamModal } from "@/components/teams/CreateTeamModal"
 
 interface TeamDirectoryItem {
   id: string
@@ -73,6 +74,54 @@ const STATIC_TEAMS: TeamDirectoryItem[] = [
     ],
   },
   {
+    id: "hackerrank-aufs",
+    name: "HackerRank AUFS",
+    description:
+      "Technical chapter at Arab Urban Future Society hosting competitive algorithmic challenges, code sprints, and system design workshops.",
+    members: [
+      {
+        userId: "user-hr-1",
+        userName: "Tarek Mansour",
+        userEmail: "tarek@hackerrank-aufs.org",
+        committeeName: "Competitive Coding",
+        customRoleTitle: "Chapter President",
+        priorityScore: 100,
+      },
+      {
+        userId: "user-hr-2",
+        userName: "Laila Nader",
+        userEmail: "laila@hackerrank-aufs.org",
+        committeeName: "Technical Content",
+        customRoleTitle: "Lead Problem Setter",
+        priorityScore: 90,
+      },
+    ],
+  },
+  {
+    id: "phd",
+    name: "PHD",
+    description:
+      "Pacemakers' Hardest Decision (PHD) — Executive leadership, business case competitions, and strategic corporate simulations.",
+    members: [
+      {
+        userId: "user-phd-1",
+        userName: "Karim Zaki",
+        userEmail: "karim@phd-case.org",
+        committeeName: "Strategy & Cases",
+        customRoleTitle: "Executive Director",
+        priorityScore: 100,
+      },
+      {
+        userId: "user-phd-2",
+        userName: "Nouran Selim",
+        userEmail: "nouran@phd-case.org",
+        committeeName: "Corporate Relations",
+        customRoleTitle: "Senior Director",
+        priorityScore: 80,
+      },
+    ],
+  },
+  {
     id: "nexus-labs",
     name: "Nexus Labs",
     description:
@@ -102,22 +151,51 @@ export default function TeamsPage() {
   const { data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [allTeams, setAllTeams] = useState<TeamDirectoryItem[]>(STATIC_TEAMS)
 
   const isManager =
     session?.user?.systemRole === "WORKSPACE_MANAGER" ||
     session?.user?.systemRole === "ADMIN" ||
     session?.user?.systemRole === "OWNER"
 
+  // Fetch approved teams from database dynamically
+  useEffect(() => {
+    fetch("/api/teams")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const dynamicTeams: TeamDirectoryItem[] = data
+            .filter((t: any) => (t.status === "APPROVED" || !t.status) && !STATIC_TEAMS.some(st => st.id === t.id))
+            .map((t: any) => ({
+              id: t.id,
+              name: t.name,
+              description: t.description || "Workspace tenant organization.",
+              members: (t.roles || []).map((r: any) => ({
+                userId: r.userId || r.user?.id || "user-dyn",
+                userName: r.user?.name || "Member",
+                userEmail: r.user?.email || "member@utopi.space",
+                committeeName: r.committeeName || null,
+                customRoleTitle: r.customRoleTitle || "Member",
+                priorityScore: 50,
+              })),
+            }))
+
+          setAllTeams([...STATIC_TEAMS, ...dynamicTeams])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Team Privacy: Regular users can ONLY see their own organization!
   // Managers and Owners can view all organizations.
   const visibleTeams = useMemo(() => {
-    if (isManager) return STATIC_TEAMS
+    if (isManager) return allTeams
     if (!session?.user?.email) return []
 
-    return STATIC_TEAMS.filter((team) =>
+    return allTeams.filter((team) =>
       team.members.some((m) => m.userEmail === session?.user?.email)
     )
-  }, [isManager, session?.user?.email])
+  }, [isManager, session?.user?.email, allTeams])
 
   const filteredTeams = visibleTeams
     .map((team) => ({
@@ -136,6 +214,7 @@ export default function TeamsPage() {
 
   const totalRoles = filteredTeams.reduce((acc, t) => acc + t.members.length, 0)
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [createTeamOpen, setCreateTeamOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -169,12 +248,23 @@ export default function TeamsPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => setCreateTeamOpen(true)}
+              className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold rounded-xl border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              <span>{isManager ? "+ Add Team" : "+ Request Team"}</span>
+            </Button>
+
+            <Button
+              size="sm"
               onClick={() => setCreateUserOpen(true)}
               className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs"
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span>+ Add User</span>
             </Button>
+
             <Link href="/">
               <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
                 <Layers className="h-3.5 w-3.5" />
@@ -271,8 +361,18 @@ export default function TeamsPage() {
       <CreateUserModal
         isOpen={createUserOpen}
         onClose={() => setCreateUserOpen(false)}
+        onRequestNewTeam={() => setCreateTeamOpen(true)}
         onSuccess={() => {
           setCreateUserOpen(false)
+          window.location.reload()
+        }}
+      />
+
+      <CreateTeamModal
+        isOpen={createTeamOpen}
+        onClose={() => setCreateTeamOpen(false)}
+        onSuccess={() => {
+          setCreateTeamOpen(false)
           window.location.reload()
         }}
       />

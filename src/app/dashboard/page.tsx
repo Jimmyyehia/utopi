@@ -22,9 +22,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useSession, signIn } from "next-auth/react"
-import { PersonaSwitcherModal } from "@/components/auth/PersonaSwitcherModal"
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -58,10 +58,16 @@ interface ApprovalQueueItem extends BookingWithRelations {
 export default function ApprovalDashboard() {
   const { data: session, status: authStatus } = useSession()
   const [queue, setQueue] = useState<ApprovalQueueItem[]>([])
+  const [pendingTeams, setPendingTeams] = useState<any[]>([])
+  const [teamActionLoading, setTeamActionLoading] = useState<string | null>(null)
+  const [rejectingTeam, setRejectingTeam] = useState<any | null>(null)
+  const [teamRejectionReason, setTeamRejectionReason] = useState("")
+
   const [stats, setStats] = useState({
     totalRooms: 0,
     totalBookingsToday: 0,
     pendingApprovals: 0,
+    pendingTeamsCount: 0,
     occupiedRooms: 0,
     revenueToday: 0,
   })
@@ -71,7 +77,6 @@ export default function ApprovalDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Modals
-  const [personaSwitcherOpen, setPersonaSwitcherOpen] = useState(false)
   const [teamsModalOpen, setTeamsModalOpen] = useState(false)
   const [rejectingBooking, setRejectingBooking] = useState<ApprovalQueueItem | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
@@ -92,7 +97,8 @@ export default function ApprovalDashboard() {
       if (res.ok) {
         const data = await res.json()
         setQueue(data.approvalQueue || [])
-        setStats(data.stats || { totalRooms: 0, totalBookingsToday: 0, pendingApprovals: 0, occupiedRooms: 0, revenueToday: 0 })
+        setPendingTeams(data.pendingTeams || [])
+        setStats(data.stats || { totalRooms: 0, totalBookingsToday: 0, pendingApprovals: 0, pendingTeamsCount: 0, occupiedRooms: 0, revenueToday: 0 })
       }
     } catch (error) {
       console.error("Failed to fetch dashboard:", error)
@@ -108,6 +114,51 @@ export default function ApprovalDashboard() {
       setLoading(false)
     }
   }, [selectedDate, authStatus])
+
+  const handleApproveTeam = async (teamId: string) => {
+    setTeamActionLoading(teamId)
+    try {
+      const res = await fetch(`/api/teams/${teamId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED" }),
+      })
+      if (res.ok) {
+        fetchDashboardData()
+      } else {
+        alert("Failed to approve team request.")
+      }
+    } catch (error) {
+      console.error("Error approving team:", error)
+      alert("Error approving team request.")
+    } finally {
+      setTeamActionLoading(null)
+    }
+  }
+
+  const confirmRejectTeam = async () => {
+    if (!rejectingTeam) return
+    setTeamActionLoading(rejectingTeam.id)
+    try {
+      const res = await fetch(`/api/teams/${rejectingTeam.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REJECTED", rejectionReason: teamRejectionReason }),
+      })
+      if (res.ok) {
+        setRejectingTeam(null)
+        setTeamRejectionReason("")
+        fetchDashboardData()
+      } else {
+        alert("Failed to decline team request.")
+      }
+    } catch (error) {
+      console.error("Error declining team:", error)
+      alert("Error declining team request.")
+    } finally {
+      setTeamActionLoading(null)
+    }
+  }
 
   const handleApprove = async (bookingId: string) => {
     try {
@@ -196,16 +247,6 @@ export default function ApprovalDashboard() {
     }
   }
 
-  const handleSwitchToManager = async () => {
-    setLoading(true)
-    await signIn("credentials", {
-      email: "manager@utopi.space",
-      password: "demo-password",
-      redirect: false,
-    })
-    window.location.reload()
-  }
-
   const filteredQueue = queue.filter((item) => {
     if (filter === "conflicts") return item.hasConflict
     if (filter === "high-priority") return item.priorityScore >= 80
@@ -217,31 +258,22 @@ export default function ApprovalDashboard() {
     return (
       <div className="min-h-screen bg-background p-6 flex flex-col justify-center items-center">
         <Card className="max-w-md w-full border-border shadow-xl text-center p-6 space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center mx-auto">
             <ShieldAlert className="h-8 w-8" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">Manager Access Required</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              The Approval Dashboard and Priority Sorting Queue require a **Workspace Manager** account.
+              The Approval Dashboard and Priority Sorting Queue require a **Workspace Manager**, **Admin**, or **Owner** account.
             </p>
           </div>
 
           <div className="space-y-3">
-            <Button
-              onClick={handleSwitchToManager}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 h-auto shadow-md gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Switch to Alex Manager (1-Click)
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setPersonaSwitcherOpen(true)}
-              className="w-full"
-            >
-              Choose Other Persona
-            </Button>
+            <Link href="/auth/signin" className="block">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 h-auto shadow-md gap-2">
+                <span>Sign In with Manager Account</span>
+              </Button>
+            </Link>
             <Link href="/" className="block">
               <Button variant="ghost" className="w-full text-xs">
                 ← Return to Floor Plan
@@ -249,11 +281,6 @@ export default function ApprovalDashboard() {
             </Link>
           </div>
         </Card>
-
-        <PersonaSwitcherModal
-          isOpen={personaSwitcherOpen}
-          onClose={() => setPersonaSwitcherOpen(false)}
-        />
       </div>
     )
   }
@@ -316,15 +343,24 @@ export default function ApprovalDashboard() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPersonaSwitcherOpen(true)}
-            className="text-xs gap-1.5 bg-primary/5 text-primary border-primary/20"
-          >
-            <UserCheck className="h-3.5 w-3.5" />
-            <span>Switch Identity</span>
-          </Button>
+            {session?.user && (
+              <div className="flex items-center gap-2 bg-muted/40 border border-border/80 px-2.5 py-1 rounded-xl shadow-xs">
+                <Avatar className="h-6 w-6 rounded-lg ring-1 ring-purple-500/30">
+                  <AvatarImage src={session.user.image || undefined} />
+                  <AvatarFallback className="bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-[10px] rounded-lg">
+                    {session.user.name ? session.user.name.split(" ").map((n: string) => n[0]).join("") : "M"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-left leading-tight hidden sm:block">
+                  <p className="text-xs font-bold text-foreground truncate max-w-[120px]">
+                    {session.user.name}
+                  </p>
+                  <p className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold truncate max-w-[120px]">
+                    {session.user.systemRole}
+                  </p>
+                </div>
+              </div>
+            )}
 
           <Button
             variant="outline"
@@ -374,7 +410,7 @@ export default function ApprovalDashboard() {
           <Card className="border-border">
             <CardHeader className="pb-1 p-4">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-yellow-600">
-                Pending Approvals
+                Pending Bookings
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
@@ -384,15 +420,94 @@ export default function ApprovalDashboard() {
 
           <Card className="border-border">
             <CardHeader className="pb-1 p-4">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-destructive">
-                Occupied Rooms
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-purple-600">
+                Team Requests
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="text-2xl sm:text-3xl font-extrabold text-destructive">{stats.occupiedRooms}</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-purple-600">{pendingTeams.length}</div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Team Creation Requests Section */}
+        {pendingTeams.length > 0 && (
+          <Card className="border-purple-300 dark:border-purple-800 shadow-md bg-purple-500/5 overflow-hidden">
+            <CardHeader className="p-5 border-b border-purple-200 dark:border-purple-800/60 bg-purple-500/10 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                    New Organization / Team Requests ({pendingTeams.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Tenant requests pending review. Approving will activate the organization and notify the creator via email.
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge className="bg-purple-600 text-white text-xs font-bold px-2.5 py-0.5">
+                Action Required
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {pendingTeams.map((team) => {
+                  const requesterName = team.members?.[0]?.user?.name || team.requestedBy || "Workspace User"
+                  const requesterEmail = team.members?.[0]?.user?.email || team.requestedBy || ""
+                  const roleTitle = team.members?.[0]?.customRoleTitle || "Founder / Lead"
+
+                  return (
+                    <div
+                      key={team.id}
+                      className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-colors hover:bg-card"
+                    >
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-extrabold text-base text-foreground">{team.name}</h4>
+                          <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800 border-purple-200 font-semibold">
+                            Pending Approval
+                          </Badge>
+                        </div>
+                        {team.description && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {team.description}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          Requested by: <span className="font-bold text-foreground">{requesterName}</span> ({requesterEmail}) • Desired Role: <span className="font-medium text-primary">{roleTitle}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={teamActionLoading === team.id}
+                          onClick={() => setRejectingTeam(team)}
+                          className="h-8 text-xs text-destructive hover:bg-destructive/10 border-destructive/30 rounded-xl"
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                          Decline
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={teamActionLoading === team.id}
+                          onClick={() => handleApproveTeam(team.id)}
+                          className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          {teamActionLoading === team.id ? "Approving..." : "Approve & Send Email"}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Approval Queue Section */}
         <Card className="border-border shadow-md">
@@ -548,7 +663,46 @@ export default function ApprovalDashboard() {
         </Card>
       </main>
 
-      {/* Rejection Dialog */}
+      {/* Team Rejection Dialog */}
+      <Dialog open={Boolean(rejectingTeam)} onOpenChange={(open) => !open && setRejectingTeam(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Decline Organization Request
+            </DialogTitle>
+            <DialogDescription>
+              Provide an optional reason for declining &quot;{rejectingTeam?.name}&quot;. An automated notification will be sent to the requester.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="team-reject-reason" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Reason / Feedback
+            </Label>
+            <Input
+              id="team-reject-reason"
+              value={teamRejectionReason}
+              onChange={(e) => setTeamRejectionReason(e.target.value)}
+              placeholder="e.g. Duplicate organization or does not meet workspace tenancy guidelines"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRejectingTeam(null)} disabled={Boolean(teamActionLoading)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRejectTeam}
+              disabled={Boolean(teamActionLoading)}
+              className="gap-2"
+            >
+              {teamActionLoading ? "Declining..." : "Confirm Decline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking Rejection Dialog */}
       <Dialog open={Boolean(rejectingBooking)} onOpenChange={(open) => !open && setRejectingBooking(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -637,12 +791,6 @@ export default function ApprovalDashboard() {
       </Dialog>
 
       </main>
-
-      {/* Persona Switcher Modal */}
-      <PersonaSwitcherModal
-        isOpen={personaSwitcherOpen}
-        onClose={() => setPersonaSwitcherOpen(false)}
-      />
     </div>
   )
 }

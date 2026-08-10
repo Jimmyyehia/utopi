@@ -82,6 +82,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Get pending team creation requests
+    const pendingTeams = await prisma.team.findMany({
+      where: { status: "PENDING" },
+      include: {
+        members: {
+          include: { user: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
     // Stats
     const stats = {
       totalRooms: await prisma.room.count(),
@@ -92,6 +103,7 @@ export async function GET(request: NextRequest) {
         },
       }),
       pendingApprovals: pendingBookings.length,
+      pendingTeamsCount: pendingTeams.length,
       occupiedRooms: await prisma.room.count({
         where: {
           bookings: {
@@ -106,7 +118,7 @@ export async function GET(request: NextRequest) {
       revenueToday: 0, // Cash on arrival - would need desk verification
     }
 
-    return NextResponse.json({ approvalQueue, stats })
+    return NextResponse.json({ approvalQueue, pendingTeams, stats })
   } catch (error) {
     console.error("Error fetching dashboard:", error)
     return NextResponse.json({ error: "Failed to fetch dashboard" }, { status: 500 })

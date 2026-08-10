@@ -22,7 +22,7 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { FloorPlan } from "@/components/floorplan/FloorPlan"
 import { BookingModal } from "@/components/booking/BookingModal"
-import { PersonaSwitcherModal } from "@/components/auth/PersonaSwitcherModal"
+import { CreateUserModal } from "@/components/auth/CreateUserModal"
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -63,6 +63,80 @@ const DEFAULT_COORDINATES: Record<string, { path: string; centerX: number; cente
   },
 }
 
+const DEFAULT_ROOMS: Room[] = [
+  {
+    id: "hall-1",
+    name: "Main Hall",
+    capacity: 30,
+    hasScreen: true,
+    hasBalcony: true,
+    hasAC: true,
+    hasWhiteboard: true,
+    hasPowerOutlets: true,
+    description:
+      "Large conference hall with air conditioning, presentation screen/TV, magnetic whiteboard, ceiling fans, power sockets, and private room balcony access.",
+    svgPolygonCoords: "M115,45 L385,45 L385,220 L115,220 Z",
+    svgX: 250,
+    svgY: 132,
+    color: "#67C2B2",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "hall-3",
+    name: "Focus Room",
+    capacity: 20,
+    hasScreen: true,
+    hasBalcony: false,
+    hasAC: true,
+    hasWhiteboard: true,
+    hasPowerOutlets: true,
+    description:
+      "Collaboration and focus room with air conditioning, presentation screen/TV, whiteboard, ceiling fans, and power sockets.",
+    svgPolygonCoords: "M397,45 L557,45 L557,220 L397,220 Z",
+    svgX: 477,
+    svgY: 132,
+    color: "#5AB0A0",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "hall-2",
+    name: "Meeting Room",
+    capacity: 10,
+    hasScreen: false,
+    hasBalcony: false,
+    hasAC: false,
+    hasWhiteboard: false,
+    hasPowerOutlets: true,
+    description: "Compact meeting room with ceiling fans and power sockets.",
+    svgPolygonCoords: "M569,45 L714,45 L714,220 L569,220 Z",
+    svgX: 641.5,
+    svgY: 132,
+    color: "#A286DB",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "shared-area",
+    name: "Shared Area",
+    capacity: 50,
+    hasScreen: false,
+    hasBalcony: true,
+    hasAC: false,
+    hasWhiteboard: false,
+    hasPowerOutlets: true,
+    description:
+      "Open co-working area for up to 50 people with natural airflow, double balcony access, ceiling fans, and power sockets throughout.",
+    svgPolygonCoords: "M115,232 L275,232 L275,475 L115,475 Z",
+    svgX: 195,
+    svgY: 353,
+    color: "#2D6A4F",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
+
 export default function HomePage() {
   const { data: session, status } = useSession()
   const [selectedRoom, setSelectedRoom] = useState<FloorPlanRoom | null>(null)
@@ -75,7 +149,7 @@ export default function HomePage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [userRoles, setUserRoles] = useState<(UserTeamRole & { team: Team })[]>([])
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [rooms, setRooms] = useState<Room[]>(DEFAULT_ROOMS)
   const [notifications, setNotifications] = useState<
     Array<{ id: string; title: string; message: string; isRead: boolean; createdAt: string }>
   >([])
@@ -274,20 +348,46 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Demo Persona Switcher Trigger */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPersonaSwitcherOpen(true)}
-              className="h-9 gap-2 text-xs font-semibold border-primary/30 hover:border-primary bg-primary/5 text-primary shadow-xs"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>
-                {status === "authenticated"
-                  ? `Active: ${session?.user?.name?.split(" ")[0]}`
-                  : "Switch Demo Persona"}
-              </span>
-            </Button>
+            {/* Active User Profile Pill / Auth CTA */}
+            {status === "authenticated" ? (
+              <div className="flex items-center gap-2.5 bg-muted/40 border border-border/80 px-3 py-1.5 rounded-2xl shadow-xs">
+                <Avatar className="h-7 w-7 rounded-xl ring-1 ring-primary/30">
+                  <AvatarImage src={session?.user?.image || undefined} />
+                  <AvatarFallback className="bg-gradient-to-tr from-primary to-emerald-600 text-white font-bold text-xs rounded-xl">
+                    {session?.user?.name ? getInitials(session.user.name) : "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-left leading-tight hidden sm:block">
+                  <p className="text-xs font-bold text-foreground truncate max-w-[130px]">
+                    {session?.user?.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[130px]">
+                    {session?.user?.systemRole}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/auth/signin">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 sm:h-9 gap-1.5 text-xs font-semibold rounded-xl"
+                  >
+                    <LogIn className="h-3.5 w-3.5" />
+                    <span>Sign In</span>
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button
+                    size="sm"
+                    className="h-8 sm:h-9 gap-1.5 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs"
+                  >
+                    <span>Create Account</span>
+                  </Button>
+                </Link>
+              </div>
+            )}
 
             {/* Notification Bell (for logged in accounts) */}
             {status === "authenticated" && (
@@ -386,12 +486,6 @@ export default function HomePage() {
         rooms={rooms.length > 0 ? rooms : (floorPlanRooms as any)}
         initialRoomId={bookingRoomId || undefined}
         initialDate={new Date()}
-      />
-
-      {/* Persona Switcher Modal */}
-      <PersonaSwitcherModal
-        isOpen={personaSwitcherOpen}
-        onClose={() => setPersonaSwitcherOpen(false)}
       />
     </div>
   )

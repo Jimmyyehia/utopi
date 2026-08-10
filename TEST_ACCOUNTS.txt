@@ -1,0 +1,129 @@
+================================================================================
+                    UTOPI WORKSPACE — SEEDED TEST ACCOUNTS
+================================================================================
+
+Standard Test Password for all accounts:
+Password: Utopi2026!  (or password123)
+
+--------------------------------------------------------------------------------
+1. WORKSPACE OWNER (Full Override Authority & Management)
+--------------------------------------------------------------------------------
+Name:           Omar Farooq
+Email:          owner@utopi.space
+Password:       Utopi2026!
+System Role:    OWNER
+Organization:   Utopi Management (Global)
+Priority Score: 100
+Permissions:    Full workspace owner authority. Automatic instant booking 
+                approval, room conflict overrides, ability to unbook any approved 
+                reservation, approve/decline new organization creation requests, 
+                and view all tenant data.
+
+--------------------------------------------------------------------------------
+2. WORKSPACE MANAGER (Approvals & Operations)
+--------------------------------------------------------------------------------
+Name:           Alex Manager
+Email:          manager@utopi.space
+Password:       Utopi2026!
+System Role:    WORKSPACE_MANAGER
+Organization:   Utopi Management (Global)
+Priority Score: 100
+Permissions:    Workspace operations manager. Reviews and manages booking queues, 
+                approves/refuses room requests, resolves conflicts, approves/declines 
+                new team creation requests with automated email feedback, and 
+                unbooks occupied slots when required.
+
+--------------------------------------------------------------------------------
+3. SYSTEM ADMIN
+--------------------------------------------------------------------------------
+Name:           Admin User
+Email:          admin@utopi.space
+Password:       Utopi2026!
+System Role:    ADMIN
+Organization:   Utopi Management (Global)
+Priority Score: 100
+Permissions:    Administrative management, system audits, user role assignments, 
+                and approval dashboard visibility.
+
+--------------------------------------------------------------------------------
+4. TENANT LEAD (Hawk Insight — PR Head & Technical Lead)
+--------------------------------------------------------------------------------
+Name:           Alice Chen
+Email:          alice@hawkinsight.com
+Password:       Utopi2026!
+System Role:    USER
+Organization:   Hawk Insight
+Committee:      PR (PR Head) & Engineering (Technical Lead)
+Priority Score: 100 (PR Head) / 90 (Technical Lead)
+Permissions:    Tenant lead with high priority booking score. Submits room booking 
+                requests for Hawk Insight. Isolated team privacy: Alice only sees 
+                Hawk Insight internal roles and sees "Accepted" status exclusively 
+                on her organization's bookings.
+
+--------------------------------------------------------------------------------
+5. TENANT SENIOR (Hawk Insight — Senior Designer)
+--------------------------------------------------------------------------------
+Name:           Bob Martinez
+Email:          bob@hawkinsight.com
+Password:       Utopi2026!
+System Role:    USER
+Organization:   Hawk Insight
+Committee:      Design (Senior Designer)
+Priority Score: 70
+Permissions:    Senior design team member at Hawk Insight. Submits standard booking 
+                requests subject to committee priority review.
+
+--------------------------------------------------------------------------------
+6. TENANT LEAD (Nexus Labs — AI Research Lead)
+--------------------------------------------------------------------------------
+Name:           Carol Kim
+Email:          carol@nexuslabs.com
+Password:       Utopi2026!
+System Role:    USER
+Organization:   Nexus Labs
+Committee:      AI Research (AI Research Lead)
+Priority Score: 90
+Permissions:    Technical lead at Nexus Labs incubator. Requests Main Hall and Focus 
+                Room for LLM demos and AI hack nights. Isolated team privacy: Carol 
+                only sees Nexus Labs roles.
+
+--------------------------------------------------------------------------------
+7. TENANT GUEST / FREELANCER
+--------------------------------------------------------------------------------
+Name:           David Park
+Email:          david@freelancer.com
+Password:       Utopi2026!
+System Role:    USER
+Organization:   Nexus Labs (Guest Associate)
+Committee:      None (Guest Member)
+Priority Score: 10
+Permissions:    Guest workspace user with base level priority score (10). Requests 
+                yield to higher priority tenant leads during room conflict triage.
+
+--------------------------------------------------------------------------------
+8. PARTNER CHAPTER LEAD (HackerRank AUFS)
+--------------------------------------------------------------------------------
+Name:           Tarek Mansour
+Email:          tarek@hackerrank-aufs.org
+Password:       Utopi2026!
+System Role:    USER
+Organization:   HackerRank AUFS
+Committee:      Competitive Coding (Chapter President)
+Priority Score: 100
+Permissions:    President of Arab Urban Future Society coding chapter. Coordinates 
+                hackathons and algorithmic workshops.
+
+--------------------------------------------------------------------------------
+9. PARTNER EXECUTIVE (PHD Consortium)
+--------------------------------------------------------------------------------
+Name:           Karim Zaki
+Email:          karim@phd-case.org
+Password:       Utopi2026!
+System Role:    USER
+Organization:   PHD
+Committee:      Strategy & Cases (Executive Director)
+Priority Score: 100
+Permissions:    Executive Director of Pacemakers' Hardest Decision business case 
+                consortium. Manages executive strategy sessions.
+
+================================================================================

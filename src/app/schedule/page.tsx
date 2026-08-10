@@ -21,12 +21,87 @@ import { useSession } from "next-auth/react"
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { BookingModal } from "@/components/booking/BookingModal"
-import { cn, formatTime, formatDate, formatDuration, getConsolidatedDayTimeline } from "@/lib/utils"
+import { cn, formatTime, formatDate, formatDuration, getConsolidatedDayTimeline, getInitials } from "@/lib/utils"
 import type { Room, BookingWithRelations, UserTeamRole, Team } from "@/types"
+
+const DEFAULT_ROOMS: Room[] = [
+  {
+    id: "hall-1",
+    name: "Main Hall",
+    capacity: 30,
+    hasScreen: true,
+    hasBalcony: true,
+    hasAC: true,
+    hasWhiteboard: true,
+    hasPowerOutlets: true,
+    description:
+      "Large conference hall with air conditioning, presentation screen/TV, magnetic whiteboard, ceiling fans, power sockets, and private room balcony access.",
+    svgPolygonCoords: "M115,45 L385,45 L385,220 L115,220 Z",
+    svgX: 250,
+    svgY: 132,
+    color: "#67C2B2",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "hall-3",
+    name: "Focus Room",
+    capacity: 20,
+    hasScreen: true,
+    hasBalcony: false,
+    hasAC: true,
+    hasWhiteboard: true,
+    hasPowerOutlets: true,
+    description:
+      "Collaboration and focus room with air conditioning, presentation screen/TV, whiteboard, ceiling fans, and power sockets.",
+    svgPolygonCoords: "M397,45 L557,45 L557,220 L397,220 Z",
+    svgX: 477,
+    svgY: 132,
+    color: "#5AB0A0",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "hall-2",
+    name: "Meeting Room",
+    capacity: 10,
+    hasScreen: false,
+    hasBalcony: false,
+    hasAC: false,
+    hasWhiteboard: false,
+    hasPowerOutlets: true,
+    description: "Compact meeting room with ceiling fans and power sockets.",
+    svgPolygonCoords: "M569,45 L714,45 L714,220 L569,220 Z",
+    svgX: 641.5,
+    svgY: 132,
+    color: "#A286DB",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "shared-area",
+    name: "Shared Area",
+    capacity: 50,
+    hasScreen: false,
+    hasBalcony: true,
+    hasAC: false,
+    hasWhiteboard: false,
+    hasPowerOutlets: true,
+    description:
+      "Open co-working area for up to 50 people with natural airflow, double balcony access, ceiling fans, and power sockets throughout.",
+    svgPolygonCoords: "M115,232 L275,232 L275,475 L115,475 Z",
+    svgX: 195,
+    svgY: 353,
+    color: "#2D6A4F",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
 
 export default function SchedulePage() {
   const { data: session } = useSession()
@@ -38,7 +113,7 @@ export default function SchedulePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string>("all")
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [rooms, setRooms] = useState<Room[]>(DEFAULT_ROOMS)
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [userRoles, setUserRoles] = useState<(UserTeamRole & { team: Team })[]>([])
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
@@ -200,6 +275,22 @@ export default function SchedulePage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {session?.user && (
+              <div className="hidden sm:flex items-center gap-2 bg-muted/40 border border-border/80 px-2.5 py-1 rounded-xl shadow-xs">
+                <Avatar className="h-6 w-6 rounded-lg ring-1 ring-primary/30">
+                  <AvatarImage src={session.user.image || undefined} />
+                  <AvatarFallback className="bg-gradient-to-tr from-primary to-emerald-600 text-white font-bold text-[10px] rounded-lg">
+                    {session.user.name ? getInitials(session.user.name) : "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-left leading-tight">
+                  <p className="text-xs font-bold text-foreground truncate max-w-[110px]">
+                    {session.user.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <Button
               size="sm"
               onClick={() => {

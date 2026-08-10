@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import {
   UserPlus,
   Building2,
@@ -31,8 +30,13 @@ export default function SignUpPage() {
   const [accountType, setAccountType] = useState<"member" | "management">("member")
   const [systemRole, setSystemRole] = useState<"USER" | "WORKSPACE_MANAGER" | "ADMIN">("USER")
 
-  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([])
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
+  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([
+    { id: "hawk-insight", name: "Hawk Insight" },
+    { id: "hackerrank-aufs", name: "HackerRank AUFS" },
+    { id: "phd", name: "PHD" },
+    { id: "nexus-labs", name: "Nexus Labs" },
+  ])
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("hawk-insight")
   const [isCreatingNewTeam, setIsCreatingNewTeam] = useState(false)
   const [newTeamName, setNewTeamName] = useState("")
   const [newTeamDescription, setNewTeamDescription] = useState("")
@@ -52,20 +56,13 @@ export default function SignUpPage() {
           const uniqueTeams = Array.from(
             new Map(data.map((t: any) => [t.id || t.teamId, { id: t.id || t.teamId, name: t.name || t.team?.name }])).values()
           )
-          setTeams(uniqueTeams)
-          if (uniqueTeams.length > 0 && !selectedTeamId) {
-            setSelectedTeamId(uniqueTeams[0].id)
+          if (uniqueTeams.length > 0) {
+            setTeams(uniqueTeams)
           }
         }
       })
-      .catch(() => {
-        setTeams([
-          { id: "hawk-insight", name: "Hawk Insight" },
-          { id: "nexus-labs", name: "Nexus Labs" },
-        ])
-        setSelectedTeamId("hawk-insight")
-      })
-  }, [selectedTeamId])
+      .catch(() => {})
+  }, [])
 
   const calculatedScore = calculatePriorityScore(customRoleTitle)
 
@@ -126,16 +123,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-12 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-12 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-lg space-y-6"
-      >
+      <div className="w-full max-w-lg space-y-6">
         {/* Top Branding */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-2">
@@ -360,7 +348,7 @@ export default function SignUpPage() {
             </form>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

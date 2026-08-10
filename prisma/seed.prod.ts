@@ -152,15 +152,17 @@ async function seedProduction() {
     })
   }
 
-  // Initial tenant organizations
+  // Initial tenant organizations (Real workspace partners)
   const teams = [
     { id: "hawk-insight", name: "Hawk Insight", description: "Strategic communications and public relations agency" },
+    { id: "hackerrank-aufs", name: "HackerRank AUFS", description: "Technical chapter for algorithms, hackathons, and competitive programming" },
+    { id: "phd", name: "PHD", description: "Pacemakers' Hardest Decision - Business Strategy & Leadership Consortium" },
     { id: "nexus-labs", name: "Nexus Labs", description: "Innovation lab focused on AI and emerging technologies" },
   ]
 
   for (const team of teams) {
     await client.execute({
-      sql: `INSERT OR REPLACE INTO teams (id, name, description, createdAt, updatedAt) VALUES (?, ?, ?, datetime('now'), datetime('now'))`,
+      sql: `INSERT OR REPLACE INTO teams (id, name, description, status, createdAt, updatedAt) VALUES (?, ?, ?, 'APPROVED', datetime('now'), datetime('now'))`,
       args: [team.id, team.name, team.description],
     })
   }

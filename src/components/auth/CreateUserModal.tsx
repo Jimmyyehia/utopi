@@ -12,8 +12,6 @@ import {
   Shield,
   CheckCircle2,
   X,
-  Briefcase,
-  Layers,
 } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -27,54 +25,71 @@ interface TeamOption {
   name: string
 }
 
+const DEFAULT_WORKSPACE_TEAMS: TeamOption[] = [
+  { id: "hawk-insight", name: "Hawk Insight" },
+  { id: "hackerrank-aufs", name: "HackerRank AUFS" },
+  { id: "phd", name: "PHD" },
+  { id: "nexus-labs", name: "Nexus Labs" },
+]
+
 interface CreateUserModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+  onRequestNewTeam?: () => void
 }
 
-export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
+export function CreateUserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  onRequestNewTeam,
+}: CreateUserModalProps) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [accountType, setAccountType] = useState<"member" | "management">("member")
   const [systemRole, setSystemRole] = useState<"USER" | "WORKSPACE_MANAGER" | "ADMIN">("USER")
-  
-  const [teams, setTeams] = useState<TeamOption[]>([])
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
-  const [isCreatingNewTeam, setIsCreatingNewTeam] = useState(false)
-  const [newTeamName, setNewTeamName] = useState("")
-  const [newTeamDescription, setNewTeamDescription] = useState("")
-  
+
+  const [teams, setTeams] = useState<TeamOption[]>(DEFAULT_WORKSPACE_TEAMS)
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("hawk-insight")
+
   const [committeeName, setCommitteeName] = useState("Engineering")
   const [customRoleTitle, setCustomRoleTitle] = useState("Member")
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  // Fetch existing teams for selection
+  // Fetch all approved workspace teams dynamically from the database
   useEffect(() => {
     if (isOpen) {
       fetch("/api/teams")
         .then((res) => res.json())
         .then((data) => {
-          if (Array.isArray(data)) {
-            // Deduplicate teams
-            const uniqueTeams = Array.from(
-              new Map(data.map((t: any) => [t.id || t.teamId, { id: t.id || t.teamId, name: t.name || t.team?.name }])).values()
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = Array.from(
+              new Map(
+                data
+                  .filter((t: any) => t.status === "APPROVED" || !t.status)
+                  .map((t: any) => [
+                    t.id || t.teamId,
+                    { id: t.id || t.teamId, name: t.name || t.team?.name || t.id },
+                  ])
+              ).values()
             )
-            setTeams(uniqueTeams)
-            if (uniqueTeams.length > 0 && !selectedTeamId) {
-              setSelectedTeamId(uniqueTeams[0].id)
+            // Combine with default workspace organizations
+            const combined = Array.from(
+              new Map([...DEFAULT_WORKSPACE_TEAMS, ...mapped].map((t) => [t.id, t])).values()
+            )
+            setTeams(combined)
+            if (!selectedTeamId || !combined.find((t) => t.id === selectedTeamId)) {
+              setSelectedTeamId(combined[0]?.id || "hawk-insight")
             }
           }
         })
         .catch(() => {
-          setTeams([
-            { id: "hawk-insight", name: "Hawk Insight" },
-            { id: "nexus-labs", name: "Nexus Labs" },
-          ])
+          setTeams(DEFAULT_WORKSPACE_TEAMS)
           setSelectedTeamId("hawk-insight")
         })
     }
@@ -100,9 +115,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
         email: email.trim(),
         password: password.trim(),
         systemRole: accountType === "management" ? systemRole : "USER",
-        teamId: isCreatingNewTeam ? undefined : selectedTeamId,
-        newTeamName: isCreatingNewTeam ? newTeamName.trim() : undefined,
-        newTeamDescription: isCreatingNewTeam ? newTeamDescription.trim() : undefined,
+        teamId: accountType === "member" ? selectedTeamId : undefined,
         committeeName: accountType === "member" ? committeeName.trim() : undefined,
         customRoleTitle: accountType === "member" ? customRoleTitle.trim() : undefined,
       }
@@ -116,7 +129,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create account.")
+        throw new Error(data.error || "Failed to create user account.")
       }
 
       setSuccessMessage("Account created! Signing you in...")
@@ -149,21 +162,21 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
           initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
-          transition={{ duration: 0.25 }}
-          className="relative w-full max-w-lg bg-card rounded-3xl border border-border shadow-2xl overflow-hidden my-8"
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-md bg-card rounded-3xl border border-border shadow-2xl overflow-hidden my-8"
         >
-          {/* Top Header */}
+          {/* Header */}
           <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 via-card to-card flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
                 <UserPlus className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-foreground tracking-tight">
-                  Create New Account / Persona
+                  Create User Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Join a tenant organization or create a management profile
+                  Register a tenant member or management profile
                 </p>
               </div>
             </div>
@@ -211,7 +224,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
                     <span>Tenant Member</span>
                   </div>
                   <p className="text-[11px] font-normal opacity-80 mt-1">
-                    Belongs to a team with committee priority
+                    Belongs to an active organization
                   </p>
                 </button>
 
@@ -226,25 +239,25 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
                 >
                   <div className="flex items-center gap-2 text-xs font-bold">
                     <Shield className="h-4 w-4" />
-                    <span>Workspace Authority</span>
+                    <span>Management Authority</span>
                   </div>
                   <p className="text-[11px] font-normal opacity-80 mt-1">
-                    Manager or Admin with auto-approvals
+                    Manager or Admin authority
                   </p>
                 </button>
               </div>
             </div>
 
-            {/* Basic Info (Name, Email, Password) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Basic Info */}
+            <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="create-name" className="text-xs font-semibold text-muted-foreground">
+                <Label htmlFor="user-name" className="text-xs font-semibold text-muted-foreground">
                   Full Name *
                 </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    id="create-name"
+                    id="user-name"
                     placeholder="e.g. Sarah Jenkins"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -255,15 +268,15 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="create-email" className="text-xs font-semibold text-muted-foreground">
+                <Label htmlFor="user-email" className="text-xs font-semibold text-muted-foreground">
                   Work Email *
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    id="create-email"
+                    id="user-email"
                     type="email"
-                    placeholder="sarah@company.com"
+                    placeholder="sarah@hawkinsight.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-8 h-9 text-xs"
@@ -271,57 +284,45 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="create-password" className="text-xs font-semibold text-muted-foreground">
-                Password *
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  id="create-password"
-                  type="password"
-                  placeholder="Min. 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-8 h-9 text-xs"
-                  required
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="user-pass" className="text-xs font-semibold text-muted-foreground">
+                  Password *
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    id="user-pass"
+                    type="password"
+                    placeholder="Min. 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-8 h-9 text-xs"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Tenant Member Specific Fields */}
+            {/* Tenant Member Organization Selector */}
             {accountType === "member" ? (
               <div className="space-y-3 pt-2 border-t border-border/60">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">Organization</Label>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatingNewTeam(!isCreatingNewTeam)}
-                    className="text-[11px] font-semibold text-primary hover:underline"
-                  >
-                    {isCreatingNewTeam ? "← Choose Existing Team" : "+ Create New Team"}
-                  </button>
-                </div>
-
-                {isCreatingNewTeam ? (
-                  <div className="space-y-2 p-3 bg-muted/40 rounded-xl border border-border">
-                    <Input
-                      placeholder="New Team Name (e.g. Apex Dynamics)"
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      className="h-8 text-xs bg-background"
-                      required
-                    />
-                    <Input
-                      placeholder="Description / Department"
-                      value={newTeamDescription}
-                      onChange={(e) => setNewTeamDescription(e.target.value)}
-                      className="h-8 text-xs bg-background"
-                    />
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-muted-foreground">Organization</Label>
+                    {onRequestNewTeam && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose()
+                          onRequestNewTeam()
+                        }}
+                        className="text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        + Request New Organization
+                      </button>
+                    )}
                   </div>
-                ) : (
                   <select
                     value={selectedTeamId}
                     onChange={(e) => setSelectedTeamId(e.target.value)}
@@ -333,13 +334,13 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
                       </option>
                     ))}
                   </select>
-                )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground">Committee</Label>
                     <Input
-                      placeholder="e.g. Engineering, Design, PR"
+                      placeholder="e.g. PR, Engineering"
                       value={committeeName}
                       onChange={(e) => setCommitteeName(e.target.value)}
                       className="h-9 text-xs"
@@ -354,7 +355,7 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
                       </Badge>
                     </div>
                     <Input
-                      placeholder="e.g. Lead, Senior, Head, Member"
+                      placeholder="e.g. Lead, Senior, Head"
                       value={customRoleTitle}
                       onChange={(e) => setCustomRoleTitle(e.target.value)}
                       className="h-9 text-xs"
@@ -398,14 +399,14 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 text-xs font-bold gap-2 shadow-md bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 hover:to-emerald-700 text-white"
+                className="w-full h-10 text-xs font-bold gap-2 shadow-md bg-gradient-to-r from-primary to-emerald-600 hover:from-primary/90 text-white rounded-xl"
               >
                 {isLoading ? (
                   <div className="h-4 w-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    <span>Create & Sign In Now</span>
+                    <span>Create User & Sign In</span>
                   </>
                 )}
               </Button>

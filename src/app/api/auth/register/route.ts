@@ -55,17 +55,24 @@ export async function POST(request: NextRequest) {
     let targetTeamId = teamId
 
     // If creating a new organization/team
+    let createdPendingTeam = false
     if (!targetTeamId && newTeamName) {
       const generatedTeamId = newTeamName
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "") || `team-${Date.now()}`
 
+      const isManagementRole = systemRole === "WORKSPACE_MANAGER" || systemRole === "ADMIN" || systemRole === "OWNER"
+      const teamStatus = isManagementRole ? "APPROVED" : "PENDING"
+      if (teamStatus === "PENDING") createdPendingTeam = true
+
       const createdTeam = await prisma.team.create({
         data: {
           id: generatedTeamId,
           name: newTeamName.trim(),
           description: newTeamDescription || null,
+          status: teamStatus,
+          requestedBy: normalizedEmail,
         },
       })
       targetTeamId = createdTeam.id
@@ -95,6 +102,23 @@ export async function POST(request: NextRequest) {
           customRoleTitle: customRoleTitle?.trim() || "Member",
         },
       })
+    }
+
+    // If a new team was requested, notify workspace managers
+    if (createdPendingTeam && newTeamName) {
+      const managers = await prisma.user.findMany({
+        where: { systemRole: { in: ["WORKSPACE_MANAGER", "ADMIN", "OWNER"] } },
+      })
+
+      for (const manager of managers) {
+        await prisma.notification.create({
+          data: {
+            userId: manager.id,
+            title: "New Team Creation Request",
+            message: `${newUser.name || newUser.email} requested to create organization "${newTeamName.trim()}".`,
+          },
+        })
+      }
     }
 
     return NextResponse.json(

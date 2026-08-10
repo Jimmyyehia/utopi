@@ -52,6 +52,8 @@ model Team {
   id          String   @id @default(cuid())
   name        String
   description String?
+  status      String   @default("APPROVED") // "PENDING" | "APPROVED" | "REJECTED"
+  requestedBy String?  // User ID or Email who requested team creation
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

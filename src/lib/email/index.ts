@@ -340,3 +340,101 @@ Utopi — Your Innovation Space
     `,
   }
 }
+
+export function generateTeamApprovedEmail(data: {
+  userName: string
+  teamName: string
+  approvedBy?: string
+}) {
+  return {
+    subject: `🎉 Organization Approved: ${data.teamName} is now active on Utopi!`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1A1A1A; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-radius: 12px 12px 0 0; padding: 24px; text-align: center;">
+            <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 700;">🎉 Team Approved & Active!</h1>
+          </div>
+          
+          <div style="background: #F8FAFA; border-radius: 0 0 12px 12px; padding: 24px; border: 1px solid #D1E2DF; border-top: none;">
+            <p style="font-size: 16px; margin-bottom: 16px;">Hi <strong>${data.userName}</strong>,</p>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">Great news! Your request to establish the organization <strong style="color: #059669;">${data.teamName}</strong> has been <strong>approved</strong> by workspace management.</p>
+            
+            <div style="background: #FFFFFF; border: 1px solid #D1E2DF; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+              <p style="margin: 0; font-size: 14px; color: #374151;">You and your members can now book collaborative spaces, schedule committee workshops, and access all workspace resources.</p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #D1E2DF; margin: 24px 0;">
+            <p style="font-size: 12px; color: #9CA3AF; text-align: center;">Utopi — Your Innovation Space</p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Team Approved: ${data.teamName}
+
+Hi ${data.userName},
+
+Your request to establish the organization "${data.teamName}" has been approved by workspace management! You can now make room reservations and invite members.
+
+---
+Utopi — Your Innovation Space
+    `,
+  }
+}
+
+export function generateTeamRejectedEmail(data: {
+  userName: string
+  teamName: string
+  reason?: string
+}) {
+  return {
+    subject: `Organization Request Update: ${data.teamName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1A1A1A; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); border-radius: 12px 12px 0 0; padding: 24px; text-align: center;">
+            <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 700;">Team Request Declined</h1>
+          </div>
+          
+          <div style="background: #F8FAFA; border-radius: 0 0 12px 12px; padding: 24px; border: 1px solid #D1E2DF; border-top: none;">
+            <p style="font-size: 16px; margin-bottom: 16px;">Hi <strong>${data.userName}</strong>,</p>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">Your request to create the team <strong>${data.teamName}</strong> could not be approved at this time.</p>
+            
+            ${data.reason ? `
+            <div style="background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="margin: 0; color: #991B1B; font-weight: 600;">Reason:</p>
+              <p style="margin: 4px 0 0; color: #7F1D1D; font-size: 14px;">${data.reason}</p>
+            </div>
+            ` : ''}
+            
+            <hr style="border: none; border-top: 1px solid #D1E2DF; margin: 24px 0;">
+            <p style="font-size: 12px; color: #9CA3AF; text-align: center;">Utopi — Your Innovation Space</p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Team Request Declined: ${data.teamName}
+
+Hi ${data.userName},
+
+Your request to create the team "${data.teamName}" could not be approved at this time.
+${data.reason ? `Reason: ${data.reason}` : ''}
+
+---
+Utopi — Your Innovation Space
+    `,
+  }
+}
