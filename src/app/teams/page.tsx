@@ -294,11 +294,6 @@ export default function TeamsPage() {
                             <Lock className="h-3 w-3" /> Private Team
                           </Badge>
                         )}
-                        {isMemberView && (
-                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-300 font-bold">
-                            Member
-                          </Badge>
-                        )}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
                         {team.description}
