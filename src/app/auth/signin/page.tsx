@@ -211,8 +211,7 @@ function SignInForm() {
       if (res?.error) {
         setErrorMessage("Invalid email or password. Please try again.")
       } else {
-        router.push(callbackUrl)
-        router.refresh()
+        window.location.href = callbackUrl
       }
     } catch {
       setErrorMessage("An unexpected error occurred. Please try again.")
@@ -245,8 +244,7 @@ function SignInForm() {
         return
       }
 
-      router.push(callbackUrl)
-      router.refresh()
+      window.location.href = callbackUrl
     } catch {
       setErrorMessage("Fast login failed. Please try again.")
     } finally {
