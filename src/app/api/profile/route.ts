@@ -36,8 +36,18 @@ export async function GET() {
       },
     })
 
-    const activeRoles = user.teamRoles.filter((r) => r.status !== "PENDING" && r.status !== "REJECTED")
-    const pendingRoles = user.teamRoles.filter((r) => r.status === "PENDING")
+    // Ensure team roles are populated cleanly
+    let allTeamRoles = user.teamRoles
+    if (allTeamRoles.length === 0) {
+      allTeamRoles = await prisma.userTeamRole.findMany({
+        where: { userId: user.id },
+        include: { team: true },
+        orderBy: { customRoleTitle: "asc" },
+      })
+    }
+
+    const activeRoles = allTeamRoles.filter((r) => r.status !== "PENDING" && r.status !== "REJECTED")
+    const pendingRoles = allTeamRoles.filter((r) => r.status === "PENDING")
 
     return NextResponse.json({
       user: {
