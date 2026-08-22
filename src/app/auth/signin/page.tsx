@@ -226,23 +226,23 @@ function SignInForm() {
     setLoadingUserEmail(userEmail)
 
     try {
-      const res = await signIn("credentials", {
+      let res = await signIn("credentials", {
         email: userEmail.trim(),
         password: "password123",
         redirect: false,
       })
 
       if (res?.error) {
-        // Fallback test password try
-        const res2 = await signIn("credentials", {
+        res = await signIn("credentials", {
           email: userEmail.trim(),
           password: "Utopi2026!",
           redirect: false,
         })
-        if (res2?.error) {
-          setErrorMessage(`Unable to fast login to ${userEmail}. Use standard login credentials.`)
-          return
-        }
+      }
+
+      if (res?.error) {
+        setErrorMessage(`Unable to fast login to ${userEmail}. Please enter credentials above.`)
+        return
       }
 
       router.push(callbackUrl)
