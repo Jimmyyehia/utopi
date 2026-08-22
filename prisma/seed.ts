@@ -41,11 +41,21 @@ async function main() {
   await client.execute("SELECT 1")
   console.log("✅ Connection successful")
 
-  // Create official workspace higher accounts
+  // Create testing accounts
   const users = [
     { id: "user-owner", email: "owner@utopi.space", name: "Omar Farooq", provider: "credentials", systemRole: "OWNER" },
     { id: "user-manager", email: "manager@utopi.space", name: "Alex Manager", provider: "credentials", systemRole: "WORKSPACE_MANAGER" },
     { id: "user-admin", email: "admin@utopi.space", name: "Amr El-Sayed", provider: "credentials", systemRole: "ADMIN" },
+    { id: "user-1", email: "alice@hawkinsight.com", name: "Alice Chen", provider: "credentials", systemRole: "USER" },
+    { id: "user-2", email: "bob@hawkinsight.com", name: "Bob Martinez", provider: "credentials", systemRole: "USER" },
+    { id: "user-3", email: "carol@nexuslabs.com", name: "Carol Kim", provider: "credentials", systemRole: "USER" },
+    { id: "user-4", email: "david@freelancer.com", name: "David Park", provider: "credentials", systemRole: "USER" },
+    { id: "user-tarek", email: "tarek@hackerrank-aufs.org", name: "Tarek Mansour", provider: "credentials", systemRole: "USER" },
+    { id: "user-hr-2", email: "laila@hackerrank-aufs.org", name: "Laila Nader", provider: "credentials", systemRole: "USER" },
+    { id: "user-karim", email: "karim@phd-case.org", name: "Karim Zaki", provider: "credentials", systemRole: "USER" },
+    { id: "user-phd-2", email: "youssef@phd-case.org", name: "Youssef Hassan", provider: "credentials", systemRole: "USER" },
+    { id: "user-guest", email: "guest@utopi.space", name: "Gabriel Miller", provider: "credentials", systemRole: "USER" },
+    { id: "user-sarah", email: "sarah@visitor.space", name: "Sarah Jenkins", provider: "credentials", systemRole: "USER" },
   ]
 
   for (const user of users) {
@@ -54,25 +64,46 @@ async function main() {
       args: [user.id, user.email, user.name, user.provider, user.systemRole],
     })
   }
-  console.log("✅ Created official workspace accounts")
+  console.log("✅ Created all testing accounts")
 
-  // Create teams
+  // Create tenant teams
   const teams = [
     { id: "hawk-insight", name: "Hawk Insight", description: "Strategic communications and public relations agency" },
+    { id: "hackerrank-aufs", name: "HackerRank AUFS", description: "Technical chapter for algorithms, hackathons, and competitive programming" },
+    { id: "phd", name: "PHD", description: "Pacemakers' Hardest Decision - Business Strategy & Leadership Consortium" },
     { id: "nexus-labs", name: "Nexus Labs", description: "Innovation lab focused on AI and emerging technologies" },
   ]
 
   for (const team of teams) {
     await client.execute({
-      sql: `INSERT OR REPLACE INTO teams (id, name, description, createdAt, updatedAt) VALUES (?, ?, ?, datetime('now'), datetime('now'))`,
+      sql: `INSERT OR REPLACE INTO teams (id, name, description, status, createdAt, updatedAt) VALUES (?, ?, ?, 'APPROVED', datetime('now'), datetime('now'))`,
       args: [team.id, team.name, team.description],
     })
   }
-  console.log("✅ Created teams")
+  console.log("✅ Created tenant teams")
 
-  // Clear non-official roles
-  await client.execute("DELETE FROM user_team_roles WHERE userId NOT IN ('user-owner', 'user-manager', 'user-admin')")
-  console.log("✅ Maintained clean official team roles")
+  // User team roles
+  const userTeamRoles = [
+    { id: "utr-alice-pr-head", userId: "user-1", teamId: "hawk-insight", committeeName: "PR", customRoleTitle: "PR Head" },
+    { id: "utr-alice-tech-lead", userId: "user-1", teamId: "hawk-insight", committeeName: "Engineering", customRoleTitle: "Technical Lead" },
+    { id: "utr-bob-designer", userId: "user-2", teamId: "hawk-insight", committeeName: "Design", customRoleTitle: "Senior Designer" },
+    { id: "utr-carol-ai-lead", userId: "user-3", teamId: "nexus-labs", committeeName: "AI Research", customRoleTitle: "AI Research Lead" },
+    { id: "utr-david-freelancer", userId: "user-4", teamId: "nexus-labs", committeeName: "Product", customRoleTitle: "Project Manager" },
+    { id: "utr-tarek-president", userId: "user-tarek", teamId: "hackerrank-aufs", committeeName: "Competitive Coding", customRoleTitle: "Chapter President" },
+    { id: "utr-laila-setter", userId: "user-hr-2", teamId: "hackerrank-aufs", committeeName: "Technical Content", customRoleTitle: "Lead Problem Setter" },
+    { id: "utr-karim-director", userId: "user-karim", teamId: "phd", committeeName: "Leadership", customRoleTitle: "Executive Director" },
+    { id: "utr-youssef-strategy", userId: "user-phd-2", teamId: "phd", committeeName: "Case Competition", customRoleTitle: "Strategy & Case Lead" },
+    { id: "utr-guest-founder", userId: "user-guest", teamId: "hawk-insight", committeeName: "Media Operations", customRoleTitle: "Founder" },
+    { id: "utr-sarah-vp", userId: "user-sarah", teamId: "nexus-labs", committeeName: "Operations", customRoleTitle: "Vice President" },
+  ]
+
+  for (const utr of userTeamRoles) {
+    await client.execute({
+      sql: `INSERT OR REPLACE INTO user_team_roles (id, userId, teamId, committeeName, customRoleTitle, status, createdAt) VALUES (?, ?, ?, ?, ?, 'APPROVED', datetime('now'))`,
+      args: [utr.id, utr.userId, utr.teamId, utr.committeeName, utr.customRoleTitle],
+    })
+  }
+  console.log("✅ Created user team roles")
 
   // Delete old rooms first
   await client.execute("DELETE FROM rooms")
