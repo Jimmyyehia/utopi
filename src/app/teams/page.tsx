@@ -49,7 +49,7 @@ interface TeamDirectoryItem {
 export default function TeamsPage() {
   const { data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState<"your-teams" | "all-teams">("your-teams")
+  const [activeTab, setActiveTab] = useState<"your-teams" | "all-teams">("all-teams")
   const [searchQuery, setSearchQuery] = useState("")
 
   const [createUserOpen, setCreateUserOpen] = useState(false)
@@ -274,6 +274,7 @@ export default function TeamsPage() {
           <div className="space-y-6">
             {filteredTeams.map((team) => {
               const isMemberView = team.isMember || isManager
+              const canSeeMembers = !team.isPrivate || isMemberView
 
               return (
                 <Card key={team.id} className="border-border rounded-3xl overflow-hidden shadow-xs bg-card">
@@ -293,20 +294,14 @@ export default function TeamsPage() {
                       </p>
                     </div>
 
-                    {/* Total member count is visible to team members */}
-                    {isMemberView ? (
-                      <Badge variant="outline" className="text-xs py-1 px-3 bg-primary/10 text-primary border-primary/30 font-bold self-start sm:self-center">
-                        {team.totalUniqueMembers} Member(s)
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] py-1 px-2.5 bg-primary/5 text-primary/80 border-primary/20 font-medium self-start sm:self-center flex items-center gap-1.5">
-                        <Users className="h-3 w-3 text-primary/70" /> Internal Member Directory
-                      </Badge>
-                    )}
+                    {/* Total member count is visible */}
+                    <Badge variant="outline" className="text-xs py-1 px-3 bg-primary/10 text-primary border-primary/30 font-bold self-start sm:self-center">
+                      {team.totalUniqueMembers} Member(s)
+                    </Badge>
                   </div>
 
                   <CardContent className="p-6">
-                    {isMemberView ? (
+                    {canSeeMembers ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {team.groupedMembers.map((member) => (
                           <div
