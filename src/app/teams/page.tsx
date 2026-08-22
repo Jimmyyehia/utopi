@@ -197,9 +197,6 @@ export default function TeamsPage() {
               </h1>
               <p className="text-[10px] text-muted-foreground sm:hidden font-medium">Tenant directory</p>
             </div>
-            <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold py-0.5 border-primary/30 text-primary">
-              {yourTeams.length} Your Organization(s)
-            </Badge>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
