@@ -1,9 +1,11 @@
 import { PrismaClient } from "@/generated/prisma/client"
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 import { PrismaLibSql } from "@prisma/adapter-libsql"
+import { createClient } from "@libsql/client"
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  libsqlClient: any | undefined
 }
 
 function createPrismaClient() {
@@ -14,11 +16,16 @@ function createPrismaClient() {
   let adapter: any
 
   if (isTursoUrl || isTursoFlag) {
-    // Turso Serverless Cloud Database
-    adapter = new PrismaLibSql({
-      url: databaseUrl,
-      authToken: process.env.DATABASE_AUTH_TOKEN,
-    })
+    // Reuse global @libsql/client instance across serverless invocations for ultra-fast connection pooling
+    const libsqlClient =
+      globalForPrisma.libsqlClient ??
+      createClient({
+        url: databaseUrl,
+        authToken: process.env.DATABASE_AUTH_TOKEN,
+      })
+    globalForPrisma.libsqlClient = libsqlClient
+
+    adapter = new PrismaLibSql(libsqlClient)
   } else {
     // Fast Local SQLite Embedded DB (<15ms response time)
     adapter = new PrismaBetterSqlite3({ url: "file:./dev.db" })
