@@ -24,8 +24,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased max-w-full overflow-x-hidden`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-background text-foreground max-w-full overflow-x-hidden" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

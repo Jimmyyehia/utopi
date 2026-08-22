@@ -218,9 +218,9 @@ export default function ProfilePage() {
     session?.user?.systemRole === "OWNER"
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row max-w-full overflow-x-hidden">
       <AppSidebar />
-      <main className="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
+      <main className="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300 max-w-full overflow-x-hidden">
         {/* Top Bar Header */}
         <header className="h-16 border-b border-border px-4 sm:px-6 flex items-center justify-between bg-card sticky top-0 z-30 shadow-xs">
           <div className="flex items-center gap-3">

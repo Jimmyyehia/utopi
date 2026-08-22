@@ -314,14 +314,14 @@ export default function ApprovalDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex max-w-full overflow-x-hidden">
       {/* Universal Sidebar */}
       <AppSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       {/* Main Content Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0",
+          "flex-1 flex flex-col transition-all duration-300 min-h-screen pb-20 md:pb-0 max-w-full overflow-x-hidden",
           sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >

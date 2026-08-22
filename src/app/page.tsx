@@ -332,14 +332,14 @@ export default function HomePage() {
   })
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-background max-w-full">
       {/* Universal Sidebar */}
       <AppSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       {/* Main Floor Plan Area */}
       <main
         className={cn(
-          "flex-1 flex flex-col overflow-hidden transition-all duration-300 pb-16 md:pb-0",
+          "flex-1 flex flex-col overflow-x-hidden max-w-full transition-all duration-300 min-h-screen pb-16 md:pb-0",
           sidebarOpen ? "ml-0 md:ml-64" : "ml-0 md:ml-20"
         )}
       >
