@@ -75,8 +75,17 @@ export default function TeamsPage() {
     }
   }, [])
 
-  // Fetch approved teams from API dynamically
+  // Fetch approved teams from API dynamically with instant local cache fallback
   useEffect(() => {
+    // 1. Instantly render from local cache if available
+    try {
+      const cached = sessionStorage.getItem("utopi_cached_teams")
+      if (cached) {
+        setAllTeams(JSON.parse(cached))
+      }
+    } catch (e) {}
+
+    // 2. Fetch fresh data from API in background
     fetch("/api/teams")
       .then((res) => res.json())
       .then((data) => {
@@ -98,6 +107,9 @@ export default function TeamsPage() {
           }))
 
           setAllTeams(dynamicTeams)
+          try {
+            sessionStorage.setItem("utopi_cached_teams", JSON.stringify(dynamicTeams))
+          } catch (e) {}
         }
       })
       .catch(() => {})
