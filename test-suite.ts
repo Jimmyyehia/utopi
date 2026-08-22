@@ -68,7 +68,7 @@ async function runTests() {
     const usersRes = await client.execute("SELECT * FROM users")
     const emails = usersRes.rows.map((r: any) => r.email)
     assert(emails.includes("owner@utopi.space"), "Owner persona (owner@utopi.space) exists in database")
-    assert(usersRes.rows.length >= 7, `Users table has required personas including Owner (found: ${usersRes.rows.length})`)
+    assert(usersRes.rows.length >= 3, `Users table has official higher accounts (found: ${usersRes.rows.length})`)
 
     const roomsRes = await client.execute("SELECT id, name, capacity, svgPolygonCoords FROM rooms")
     assert(roomsRes.rows.length === 4, `Rooms table has 4 configured spaces (found: ${roomsRes.rows.length})`)
@@ -80,7 +80,7 @@ async function runTests() {
     assert(roomNames.includes("Shared Area"), "Shared Area (50 Max, Balconies, Fans, Sockets) exists")
 
     const rolesRes = await client.execute("SELECT * FROM user_team_roles")
-    assert(rolesRes.rows.length >= 5, `Tenant team roles for regular members exist (found: ${rolesRes.rows.length})`)
+    assert(Array.isArray(rolesRes.rows), `Tenant team roles ready for real team members (found: ${rolesRes.rows.length})`)
 
     const bookingsRes = await client.execute("SELECT * FROM bookings")
     assert(Array.isArray(bookingsRes.rows), `Bookings table ready for real user reservations (found: ${bookingsRes.rows.length})`)

@@ -58,70 +58,6 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     orgName: "Utopi Systems",
     roleTitle: "System Administrator",
   },
-  {
-    name: "Alice Chen",
-    email: "alice@hawkinsight.com",
-    roleBadge: "PR Head",
-    roleCategory: "tenant",
-    orgName: "Hawk Insight",
-    roleTitle: "PR Head & Tech Lead",
-  },
-  {
-    name: "Bob Martinez",
-    email: "bob@hawkinsight.com",
-    roleBadge: "Senior",
-    roleCategory: "tenant",
-    orgName: "Hawk Insight",
-    roleTitle: "Senior Designer",
-  },
-  {
-    name: "Tarek Mansour",
-    email: "tarek@hackerrank-aufs.org",
-    roleBadge: "President",
-    roleCategory: "tenant",
-    orgName: "HackerRank AUFS",
-    roleTitle: "Chapter President",
-  },
-  {
-    name: "Laila Nader",
-    email: "laila@hackerrank-aufs.org",
-    roleBadge: "Lead",
-    roleCategory: "tenant",
-    orgName: "HackerRank AUFS",
-    roleTitle: "Lead Problem Setter",
-  },
-  {
-    name: "Karim Zaki",
-    email: "karim@phd-case.org",
-    roleBadge: "Director",
-    roleCategory: "tenant",
-    orgName: "PHD",
-    roleTitle: "Executive Director",
-  },
-  {
-    name: "Youssef Hassan",
-    email: "youssef@phd-case.org",
-    roleBadge: "Lead",
-    roleCategory: "tenant",
-    orgName: "PHD",
-    roleTitle: "Strategy & Case Lead",
-  },
-  {
-    name: "Carol Kim",
-    email: "carol@nexuslabs.com",
-    roleBadge: "Lead",
-    roleCategory: "tenant",
-    orgName: "Nexus Labs",
-    roleTitle: "AI Research Lead",
-  },
-  {
-    name: "David Park",
-    email: "david@freelancer.com",
-    roleBadge: "Senior",
-    roleCategory: "tenant",
-    orgName: "Nexus Labs",
-    roleTitle: "Senior AI Engineer",
-  },
 ]
 
 function SignInForm() {
@@ -381,37 +317,33 @@ function SignInForm() {
           </Card>
         </div>
 
-        {/* Right Side: Enhanced Fast Login Persona Directory Grouped by Team */}
+        {/* Right Side: Official Workspace Leadership Directory */}
         <div className="lg:col-span-7 space-y-4">
           <Card className="border-border shadow-xl bg-card rounded-3xl overflow-hidden">
             <CardHeader className="pb-4 pt-6 px-6 border-b border-border/50 bg-gradient-to-r from-purple-500/10 via-primary/5 to-transparent">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <Zap className="h-4 w-4 text-amber-500" />
-                  <span>1-Click Instant Login</span>
+                  <Shield className="h-4 w-4 text-purple-600" />
+                  <span>Official Workspace Accounts</span>
                 </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-bold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                  {displayedUsers.length} Active Personas
+                <Badge variant="outline" className="text-[10px] font-bold border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10">
+                  {managementUsers.length} Official Accounts
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground">
-                Click any team member card below to immediately sign in and assume that identity.
+                Select an official workspace leadership account below to log in, or enter your credentials.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-6 space-y-5 max-h-[520px] overflow-y-auto pr-1">
-              {/* Workspace Leadership & Management Section */}
-              <div className="space-y-2">
+            <CardContent className="p-6 space-y-5">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     <Shield className="h-3.5 w-3.5 text-purple-600" />
-                    <span>Workspace Leadership & Operations</span>
+                    <span>Workspace Executive Leadership</span>
                   </div>
-                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-bold text-purple-600 border-purple-500/30 bg-purple-500/10">
-                    {managementUsers.length} Management Roles
-                  </Badge>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 gap-3">
                   {managementUsers.map((u) => {
                     const isSigningIn = loadingUserEmail === u.email
                     return (
@@ -420,89 +352,35 @@ function SignInForm() {
                         type="button"
                         disabled={loadingUserEmail !== null || isLoading}
                         onClick={() => handleFastLogin(u.email)}
-                        className="p-3 rounded-2xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-500/40 text-left transition-all duration-200 shadow-xs flex flex-col justify-between group disabled:opacity-50"
+                        className="p-4 rounded-2xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-500/40 text-left transition-all duration-200 shadow-xs flex items-center justify-between group disabled:opacity-50"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Avatar className="h-8 w-8 rounded-xl ring-1 ring-purple-500/30">
-                            <AvatarFallback className="bg-purple-600 text-white font-bold text-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-10 w-10 rounded-xl ring-2 ring-purple-500/30 flex-shrink-0">
+                            <AvatarFallback className="bg-purple-600 text-white font-bold text-sm">
                               {getInitials(u.name)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-foreground truncate group-hover:text-purple-600 transition-colors">
-                              {u.name}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-foreground truncate group-hover:text-purple-600 transition-colors">
+                                {u.name}
+                              </p>
+                              <Badge variant="outline" className="text-[10px] py-0 px-2 font-bold text-purple-600 border-purple-500/30 bg-purple-500/10">
+                                {u.roleBadge}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {u.email} • {u.roleTitle}
                             </p>
-                            <Badge variant="outline" className="text-[9px] py-0 px-1 font-bold text-purple-600 border-purple-500/30 bg-purple-500/10">
-                              {u.roleBadge}
-                            </Badge>
                           </div>
                         </div>
-                        <div className="mt-2.5 pt-2 border-t border-purple-500/10 flex items-center justify-between text-[10px]">
-                          <span className="text-muted-foreground truncate">{u.orgName}</span>
-                          <span className="font-semibold text-purple-600 group-hover:translate-x-0.5 transition-transform">
-                            {isSigningIn ? "Logging in..." : "Login →"}
-                          </span>
-                        </div>
+                        <span className="text-xs font-extrabold text-purple-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2">
+                          {isSigningIn ? "Logging in..." : "Login →"}
+                        </span>
                       </button>
                     )
                   })}
                 </div>
-              </div>
-
-              {/* Grouped Organization Cards with at least 2 users per team */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  <Building2 className="h-3.5 w-3.5 text-primary" />
-                  <span>Tenant Teams & Active Organizations (2+ Members Each)</span>
-                </div>
-
-                {Array.from(orgMap.entries()).map(([orgName, members]) => (
-                  <div key={orgName} className="p-3.5 rounded-2xl border border-border/80 bg-muted/20 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-primary" />
-                        <h4 className="text-xs font-extrabold text-foreground">{orgName}</h4>
-                      </div>
-                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-bold text-primary border-primary/30 bg-primary/10">
-                        {members.length} Members
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {members.map((u) => {
-                        const isSigningIn = loadingUserEmail === u.email
-                        return (
-                          <button
-                            key={u.email}
-                            type="button"
-                            disabled={loadingUserEmail !== null || isLoading}
-                            onClick={() => handleFastLogin(u.email)}
-                            className="p-2.5 rounded-xl border border-border/70 hover:border-primary/40 bg-card hover:bg-primary/5 text-left transition-all duration-200 shadow-xs flex items-center justify-between group disabled:opacity-50"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Avatar className="h-7 w-7 rounded-lg ring-1 ring-primary/30 flex-shrink-0">
-                                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-[10px]">
-                                  {getInitials(u.name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors leading-snug">
-                                  {u.name}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
-                                  {u.roleTitle}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="text-[11px] font-bold text-primary group-hover:translate-x-0.5 transition-transform flex-shrink-0 ml-1">
-                              {isSigningIn ? "..." : "Login →"}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

@@ -41,15 +41,11 @@ async function main() {
   await client.execute("SELECT 1")
   console.log("✅ Connection successful")
 
-  // Create users
+  // Create official workspace higher accounts
   const users = [
     { id: "user-owner", email: "owner@utopi.space", name: "Omar Farooq", provider: "credentials", systemRole: "OWNER" },
     { id: "user-manager", email: "manager@utopi.space", name: "Alex Manager", provider: "credentials", systemRole: "WORKSPACE_MANAGER" },
-    { id: "user-admin", email: "admin@utopi.space", name: "Admin User", provider: "credentials", systemRole: "ADMIN" },
-    { id: "user-1", email: "alice@hawkinsight.com", name: "Alice Chen", provider: "credentials", systemRole: "USER" },
-    { id: "user-2", email: "bob@hawkinsight.com", name: "Bob Martinez", provider: "credentials", systemRole: "USER" },
-    { id: "user-3", email: "carol@nexuslabs.com", name: "Carol Kim", provider: "credentials", systemRole: "USER" },
-    { id: "user-4", email: "david@freelancer.com", name: "David Park", provider: "credentials", systemRole: "USER" },
+    { id: "user-admin", email: "admin@utopi.space", name: "Amr El-Sayed", provider: "credentials", systemRole: "ADMIN" },
   ]
 
   for (const user of users) {
@@ -58,7 +54,7 @@ async function main() {
       args: [user.id, user.email, user.name, user.provider, user.systemRole],
     })
   }
-  console.log("✅ Created users")
+  console.log("✅ Created official workspace accounts")
 
   // Create teams
   const teams = [
@@ -74,22 +70,9 @@ async function main() {
   }
   console.log("✅ Created teams")
 
-  // Create user team roles (ONLY regular team members belong to tenant teams)
-  const userTeamRoles = [
-    { id: "utr-alice-pr-head", userId: "user-1", teamId: "hawk-insight", committeeName: "PR", customRoleTitle: "PR Head" },
-    { id: "utr-alice-tech-lead", userId: "user-1", teamId: "hawk-insight", committeeName: "Engineering", customRoleTitle: "Technical Lead" },
-    { id: "utr-bob-designer", userId: "user-2", teamId: "hawk-insight", committeeName: "Design", customRoleTitle: "Senior Designer" },
-    { id: "utr-carol-ai-lead", userId: "user-3", teamId: "nexus-labs", committeeName: "AI Research", customRoleTitle: "AI Research Lead" },
-    { id: "utr-david-freelancer", userId: "user-4", teamId: "nexus-labs", committeeName: null, customRoleTitle: "Guest Member" },
-  ]
-
-  for (const utr of userTeamRoles) {
-    await client.execute({
-      sql: `INSERT OR REPLACE INTO user_team_roles (id, userId, teamId, committeeName, customRoleTitle, createdAt) VALUES (?, ?, ?, ?, ?, datetime('now'))`,
-      args: [utr.id, utr.userId, utr.teamId, utr.committeeName, utr.customRoleTitle],
-    })
-  }
-  console.log("✅ Created user team roles")
+  // Clear non-official roles
+  await client.execute("DELETE FROM user_team_roles WHERE userId NOT IN ('user-owner', 'user-manager', 'user-admin')")
+  console.log("✅ Maintained clean official team roles")
 
   // Delete old rooms first
   await client.execute("DELETE FROM rooms")
