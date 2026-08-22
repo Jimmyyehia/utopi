@@ -30,32 +30,70 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(date)
     endOfDay.setHours(23, 59, 59, 999)
 
-    // Get pending bookings with conflicts
-    const pendingBookings = await prisma.booking.findMany({
-      where: {
-        status: "PENDING",
-        startTime: { gte: startOfDay, lte: endOfDay },
-      },
-      include: {
-        room: true,
-        user: true,
-        team: true,
-      },
-      orderBy: [{ priorityScore: "desc" }, { createdAt: "asc" }],
-    })
+    const now = new Date()
 
-    // Get all approved bookings for the day to check conflicts
-    const approvedBookings = await prisma.booking.findMany({
-      where: {
-        status: "APPROVED",
-        OR: [
-          { startTime: { gte: startOfDay, lte: endOfDay } },
-          { endTime: { gte: startOfDay, lte: endOfDay } },
-          { AND: [{ startTime: { lte: startOfDay } }, { endTime: { gte: endOfDay } }] },
-        ],
-      },
-      include: { room: true, user: true, team: true },
-    })
+    // Run ALL database queries concurrently in a single parallel Promise.all batch!
+    const [
+      pendingBookings,
+      approvedBookings,
+      pendingTeams,
+      pendingCustomRoles,
+      totalRooms,
+      totalBookingsToday,
+      occupiedRoomsCount,
+    ] = await Promise.all([
+      // 1. ALL pending bookings
+      prisma.booking.findMany({
+        where: { status: "PENDING" },
+        include: { room: true, user: true, team: true },
+        orderBy: [{ createdAt: "asc" }],
+      }),
+      // 2. Approved bookings for the selected day
+      prisma.booking.findMany({
+        where: {
+          status: "APPROVED",
+          OR: [
+            { startTime: { gte: startOfDay, lte: endOfDay } },
+            { endTime: { gte: startOfDay, lte: endOfDay } },
+            { AND: [{ startTime: { lte: startOfDay } }, { endTime: { gte: endOfDay } }] },
+          ],
+        },
+        include: { room: true, user: true, team: true },
+      }),
+      // 3. Pending team creation requests
+      prisma.team.findMany({
+        where: { status: "PENDING" },
+        include: { members: { include: { user: true } } },
+        orderBy: { name: "asc" },
+      }),
+      // 4. Pending custom role requests
+      prisma.userTeamRole.findMany({
+        where: { status: "PENDING" },
+        include: { user: true, team: true },
+        orderBy: { customRoleTitle: "asc" },
+      }),
+      // 5. Total rooms count
+      prisma.room.count(),
+      // 6. Total approved bookings today
+      prisma.booking.count({
+        where: {
+          status: "APPROVED",
+          startTime: { gte: startOfDay, lte: endOfDay },
+        },
+      }),
+      // 7. Occupied rooms right now
+      prisma.room.count({
+        where: {
+          bookings: {
+            some: {
+              status: "APPROVED",
+              startTime: { lte: now },
+              endTime: { gte: now },
+            },
+          },
+        },
+      }),
+    ])
 
     // Group pending bookings by room and time to find conflicts
     const approvalQueue = pendingBookings.map((booking) => {
@@ -82,43 +120,24 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Get pending team creation requests
-    const pendingTeams = await prisma.team.findMany({
-      where: { status: "PENDING" },
-      include: {
-        members: {
-          include: { user: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    // Stats
     const stats = {
-      totalRooms: await prisma.room.count(),
-      totalBookingsToday: await prisma.booking.count({
-        where: {
-          status: "APPROVED",
-          startTime: { gte: startOfDay, lte: endOfDay },
-        },
-      }),
+      totalRooms,
+      totalBookingsToday,
       pendingApprovals: pendingBookings.length,
       pendingTeamsCount: pendingTeams.length,
-      occupiedRooms: await prisma.room.count({
-        where: {
-          bookings: {
-            some: {
-              status: "APPROVED",
-              startTime: { lte: new Date() },
-              endTime: { gte: new Date() },
-            },
-          },
-        },
-      }),
-      revenueToday: 0, // Cash on arrival - would need desk verification
+      pendingCustomRolesCount: pendingCustomRoles.length,
+      occupiedRooms: occupiedRoomsCount,
+      revenueToday: 0,
     }
 
-    return NextResponse.json({ approvalQueue, pendingTeams, stats })
+    return NextResponse.json(
+      { approvalQueue, pendingTeams, pendingCustomRoles, stats },
+      {
+        headers: {
+          "Cache-Control": "private, no-cache, no-transform",
+        },
+      }
+    )
   } catch (error) {
     console.error("Error fetching dashboard:", error)
     return NextResponse.json({ error: "Failed to fetch dashboard" }, { status: 500 })

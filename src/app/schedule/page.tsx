@@ -42,6 +42,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { BookingModal } from "@/components/booking/BookingModal"
 import { useRealtimeBookings } from "@/hooks/useSocket"
+import { SiteNotificationModal, NotificationState } from "@/components/ui/SiteNotificationModal"
 import {
   cn,
   formatTime,
@@ -220,6 +221,8 @@ export default function SchedulePage() {
     }
   }
 
+  const [notification, setNotification] = useState<NotificationState | null>(null)
+
   // Handle Approve (Managers only)
   const handleApprove = async (bookingId: string) => {
     setActionLoadingId(bookingId)
@@ -233,11 +236,11 @@ export default function SchedulePage() {
         await refreshBookings()
       } else {
         const err = await res.json()
-        alert(err.error || "Failed to approve booking.")
+        setNotification({ isOpen: true, title: "Approval Failed", message: err.error || "Failed to approve booking.", type: "error" })
       }
     } catch (err) {
       console.error("Error approving booking:", err)
-      alert("Error approving booking.")
+      setNotification({ isOpen: true, title: "Error", message: "Error approving booking.", type: "error" })
     } finally {
       setActionLoadingId(null)
     }
@@ -260,11 +263,11 @@ export default function SchedulePage() {
         await refreshBookings()
       } else {
         const err = await res.json()
-        alert(err.error || "Failed to refuse request.")
+        setNotification({ isOpen: true, title: "Decline Failed", message: err.error || "Failed to refuse request.", type: "error" })
       }
     } catch (err) {
       console.error("Error refusing booking:", err)
-      alert("Error refusing request.")
+      setNotification({ isOpen: true, title: "Error", message: "Error refusing request.", type: "error" })
     } finally {
       setActionLoadingId(null)
     }
@@ -284,11 +287,11 @@ export default function SchedulePage() {
           setSelectedBooking(null)
         }
       } else {
-        alert("Failed to unbook reservation.")
+        setNotification({ isOpen: true, title: "Unbook Failed", message: "Failed to unbook reservation.", type: "error" })
       }
     } catch (err) {
       console.error("Error unbooking:", err)
-      alert("Error unbooking reservation.")
+      setNotification({ isOpen: true, title: "Error", message: "Error unbooking reservation.", type: "error" })
     } finally {
       setActionLoadingId(null)
     }
@@ -303,9 +306,10 @@ export default function SchedulePage() {
     if (res.ok) {
       setBookingModalOpen(false)
       await refreshBookings()
+      setNotification({ isOpen: true, title: "Booking Request Submitted", message: "🎉 Your reservation request has been submitted! Workspace managers will review it shortly.", type: "success" })
     } else {
       const err = await res.json()
-      alert(err.error || "Failed to create booking.")
+      setNotification({ isOpen: true, title: "Booking Failed", message: err.error || "Failed to create booking.", type: "error" })
     }
   }
 
@@ -427,12 +431,6 @@ export default function SchedulePage() {
               <Plus className="h-3.5 w-3.5" />
               <span>Book Space</span>
             </Button>
-            <Link href="/">
-              <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
-                <Layers className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Floor Plan</span>
-              </Button>
-            </Link>
           </div>
         </header>
 
@@ -633,12 +631,21 @@ export default function SchedulePage() {
 
                               {/* Team Name & Project */}
                               <div>
-                                <h4 className="font-extrabold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                                  {b.team?.name || "Tenant Team"}
-                                </h4>
-                                <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                                  {b.description || b.projectOrCommitteeName || "Reserved Workspace Session"}
-                                </p>
+                                <div className="flex items-center gap-1.5 justify-between">
+                                  <h4 className="font-extrabold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                                    {b.team?.name || "Reserved"}
+                                  </h4>
+                                  {b.isIncognito && (
+                                    <Badge variant="outline" className="text-[8px] py-0 px-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-400 font-bold flex-shrink-0">
+                                      Private Session
+                                    </Badge>
+                                  )}
+                                </div>
+                                {(b.description?.trim() || b.projectOrCommitteeName?.trim()) && (
+                                  <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                                    {b.description?.trim() || b.projectOrCommitteeName?.trim()}
+                                  </p>
+                                )}
                               </div>
                             </div>
 
@@ -877,14 +884,21 @@ export default function SchedulePage() {
                                       )}
                                     </div>
 
-                                    <p className="font-extrabold text-foreground truncate text-sm mt-1">
-                                      {booking.team.name}
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                                      {booking.description ||
-                                        booking.projectOrCommitteeName ||
-                                        "Reserved Session"}
-                                    </p>
+                                    <div className="flex items-center gap-1.5 justify-between mt-1">
+                                      <p className="font-extrabold text-foreground truncate text-sm">
+                                        {booking.team?.name || "Reserved"}
+                                      </p>
+                                      {booking.isIncognito && (
+                                        <Badge variant="outline" className="text-[8px] py-0 px-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-400 font-bold flex-shrink-0">
+                                          Private Session
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {(booking.description?.trim() || booking.projectOrCommitteeName?.trim()) && (
+                                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                        {booking.description?.trim() || booking.projectOrCommitteeName?.trim()}
+                                      </p>
+                                    )}
                                   </div>
 
                                   <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -1240,17 +1254,17 @@ export default function SchedulePage() {
                   </div>
 
                   {/* Project / Purpose */}
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span>Project / Committee Purpose</span>
-                    </h4>
-                    <p className="text-xs text-foreground font-medium">
-                      {selectedBooking.description ||
-                        selectedBooking.projectOrCommitteeName ||
-                        "General Workspace Collaboration"}
-                    </p>
-                  </div>
+                  {(selectedBooking.description?.trim() || selectedBooking.projectOrCommitteeName?.trim()) && (
+                    <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2">
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-primary" />
+                        <span>Project / Committee Purpose</span>
+                      </h4>
+                      <p className="text-xs text-foreground font-medium">
+                        {selectedBooking.description?.trim() || selectedBooking.projectOrCommitteeName?.trim()}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Payment & Reference Code */}
                   <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5 text-xs">
@@ -1309,46 +1323,95 @@ export default function SchedulePage() {
                 </div>
               </ScrollArea>
 
-              {/* Drawer Footer Actions (Managers only) */}
-              {isManager && (
-                <div className="p-4 border-t border-border bg-card flex items-center justify-end gap-2.5">
-                  {selectedBooking.status === "PENDING" ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={actionLoadingId === selectedBooking.id}
-                        onClick={() => handleRefuse(selectedBooking.id)}
-                        className="h-9 text-xs px-4 rounded-xl font-bold bg-red-600 hover:bg-red-700 text-white gap-1.5 shadow-xs"
-                      >
-                        <X className="h-4 w-4" />
-                        <span>{actionLoadingId === selectedBooking.id ? "Refusing..." : "Refuse Request"}</span>
-                      </Button>
+              {/* Drawer Footer Actions */}
+              {(() => {
+                const isPast = new Date(selectedBooking.endTime) <= new Date()
+                const isRequester = session?.user?.id === selectedBooking.userId || session?.user?.email === selectedBooking.user?.email
 
+                if (isPast) {
+                  return (
+                    <div className="p-4 border-t border-border bg-card flex items-center justify-center">
+                      <Badge variant="outline" className="text-xs py-1 px-3 bg-muted text-muted-foreground border-border font-medium flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Session Completed (Locked)</span>
+                      </Badge>
+                    </div>
+                  )
+                }
+
+                if (isManager) {
+                  return (
+                    <div className="p-4 border-t border-border bg-card flex items-center justify-end gap-2.5">
+                      {selectedBooking.status === "PENDING" ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={actionLoadingId === selectedBooking.id}
+                            onClick={() => handleRefuse(selectedBooking.id)}
+                            className="h-9 text-xs px-4 rounded-xl font-bold bg-red-600 hover:bg-red-700 text-white gap-1.5 shadow-xs"
+                          >
+                            <X className="h-4 w-4" />
+                            <span>{actionLoadingId === selectedBooking.id ? "Refusing..." : "Refuse Request"}</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            disabled={actionLoadingId === selectedBooking.id}
+                            onClick={() => handleApprove(selectedBooking.id)}
+                            className="h-9 text-xs px-5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>{actionLoadingId === selectedBooking.id ? "Approving..." : "Approve Request"}</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={actionLoadingId === selectedBooking.id}
+                          onClick={() => handleUnbook(selectedBooking.id)}
+                          className="h-9 text-xs px-4 rounded-xl font-bold gap-1.5 shadow-xs w-full justify-center"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>{actionLoadingId === selectedBooking.id ? "Unbooking..." : "Unbook & Release Space"}</span>
+                        </Button>
+                      )}
+                    </div>
+                  )
+                }
+
+                if (isRequester && selectedBooking.status === "PENDING") {
+                  return (
+                    <div className="p-4 border-t border-border bg-card flex items-center justify-end gap-2.5">
                       <Button
                         size="sm"
+                        variant="outline"
                         disabled={actionLoadingId === selectedBooking.id}
-                        onClick={() => handleApprove(selectedBooking.id)}
-                        className="h-9 text-xs px-5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs"
+                        onClick={() => handleUnbook(selectedBooking.id)}
+                        className="h-9 text-xs px-4 rounded-xl font-bold border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 gap-1.5"
                       >
-                        <Check className="h-4 w-4" />
-                        <span>{actionLoadingId === selectedBooking.id ? "Approving..." : "Approve Request"}</span>
+                        <Trash2 className="h-4 w-4" />
+                        <span>Withdraw Unrequest</span>
                       </Button>
-                    </>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={actionLoadingId === selectedBooking.id}
-                      onClick={() => handleUnbook(selectedBooking.id)}
-                      className="h-9 text-xs px-4 rounded-xl font-bold gap-1.5 shadow-xs w-full justify-center"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span>{actionLoadingId === selectedBooking.id ? "Unbooking..." : "Unbook & Release Space"}</span>
-                    </Button>
-                  )}
-                </div>
-              )}
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setBookingRoomId(selectedBooking.roomId)
+                          setBookingInitialDate(new Date(selectedBooking.startTime))
+                          setBookingModalOpen(true)
+                        }}
+                        className="h-9 text-xs px-4 rounded-xl font-bold bg-primary text-primary-foreground gap-1.5"
+                      >
+                        <Clock className="h-4 w-4" />
+                        <span>Reschedule Request</span>
+                      </Button>
+                    </div>
+                  )
+                }
+
+                return null
+              })()}
             </motion.aside>
           </>
         )}
@@ -1367,6 +1430,8 @@ export default function SchedulePage() {
         initialRoomId={bookingRoomId || undefined}
         initialDate={bookingInitialDate}
       />
+
+      <SiteNotificationModal notification={notification} onClose={() => setNotification(null)} />
     </div>
   )
 }

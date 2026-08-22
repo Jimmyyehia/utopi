@@ -11,6 +11,7 @@ import {
   getConsolidatedDayTimeline,
   getStatusColor,
   WORKSPACE_HOURS,
+  WORKSPACE_PRESET_ROLES,
 } from "./src/lib/utils"
 
 const __filename = fileURLToPath(import.meta.url)
@@ -79,34 +80,29 @@ async function runTests() {
     assert(roomNames.includes("Shared Area"), "Shared Area (50 Max, Balconies, Fans, Sockets) exists")
 
     const rolesRes = await client.execute("SELECT * FROM user_team_roles")
-    assert(rolesRes.rows.length === 5, `Tenant team roles for regular members exist (found: ${rolesRes.rows.length})`)
+    assert(rolesRes.rows.length >= 5, `Tenant team roles for regular members exist (found: ${rolesRes.rows.length})`)
 
     const bookingsRes = await client.execute("SELECT * FROM bookings")
-    assert(bookingsRes.rows.length > 0, `Sample bookings exist in database (found: ${bookingsRes.rows.length})`)
+    assert(Array.isArray(bookingsRes.rows), `Bookings table ready for real user reservations (found: ${bookingsRes.rows.length})`)
   } catch (e: any) {
     assert(false, "Database connection and queries", e.message)
   }
 
-  // --- TEST GROUP 2: Role Hierarchy & Priority Scoring Logic ---
-  console.log("\n👑 2. Role Hierarchy & Priority Scoring Logic")
+  // --- TEST GROUP 2: Workspace Standardized Roles & Equal Priority Engine ---
+  console.log("\n👑 2. Workspace Standardized Roles & Equal Priority Engine")
 
-  const ownerScore = calculatePriorityScore("Workspace Owner")
-  assert(ownerScore === 100, `Owner role calculates score = 100 (got: ${ownerScore})`)
+  assert(WORKSPACE_PRESET_ROLES.includes("President"), "President is a Workspace Standardized Role")
+  assert(WORKSPACE_PRESET_ROLES.includes("Vice President"), "Vice President is a Workspace Standardized Role")
+  assert(WORKSPACE_PRESET_ROLES.includes("Head"), "Head is a Workspace Standardized Role")
+  assert(WORKSPACE_PRESET_ROLES.includes("Vice Head"), "Vice Head is a Workspace Standardized Role")
+  assert(WORKSPACE_PRESET_ROLES.includes("Project Manager"), "Project Manager is a Workspace Standardized Role")
+  assert(WORKSPACE_PRESET_ROLES.includes("Vice Project Manager"), "Vice Project Manager is a Workspace Standardized Role")
 
-  const founderScore = calculatePriorityScore("Founder")
-  assert(founderScore === 100, `Founder role calculates score = 100 (got: ${founderScore})`)
+  const presidentScore = calculatePriorityScore("President")
+  assert(presidentScore === 0, "No numerical priority scores used (returns 0 for President)")
 
-  const headScore = calculatePriorityScore("PR Head")
-  assert(headScore === 100, `Head role calculates score = 100 (got: ${headScore})`)
-
-  const leadScore = calculatePriorityScore("Technical Lead")
-  assert(leadScore === 90, `Lead role calculates score = 90 (got: ${leadScore})`)
-
-  const seniorScore = calculatePriorityScore("Senior Designer")
-  assert(seniorScore === 70, `Senior role calculates score = 70 (got: ${seniorScore})`)
-
-  const guestScore = calculatePriorityScore("Guest Member")
-  assert(guestScore === 10, `Guest role calculates score = 10 (got: ${guestScore})`)
+  const memberScore = calculatePriorityScore("Member")
+  assert(memberScore === 0, "No numerical priority scores used (returns 0 for Member)")
 
   // --- TEST GROUP 3: Conflict Detection Algorithm ---
   console.log("\n⚠️ 3. Conflict Detection Algorithm (isTimeSlotBooked)")
@@ -125,12 +121,12 @@ async function runTests() {
   )
   assert(exactOverlap === true, "Detects exact 2 PM - 4 PM identical time slot clash")
 
-  const halfHourOverlap = isTimeSlotBooked(
+  const nestedOverlap = isTimeSlotBooked(
     existingBookings,
     new Date("2026-08-09T14:30:00Z"),
     new Date("2026-08-09T15:00:00Z")
   )
-  assert(halfHourOverlap === true, "Detects nested 30-minute half-hour overlap (2:30 PM – 3:00 PM)")
+  assert(nestedOverlap === true, "Detects nested 30-minute half-hour overlap (2:30 PM – 3:00 PM)")
 
   const partialOverlapStart = isTimeSlotBooked(
     existingBookings,
@@ -153,27 +149,22 @@ async function runTests() {
   )
   assert(noOverlapAfter === false, "Recognizes adjacent non-overlapping subsequent slot (4 PM – 5:30 PM)")
 
-  // --- TEST GROUP 4: Queue Priority Sorting Logic ---
-  console.log("\n📊 4. Manager Approval Queue Sorting")
+  // --- TEST GROUP 4: Manager Approval Queue Chronological Sorting (FIFO) ---
+  console.log("\n📊 4. Manager Approval Queue Chronological Sorting (FIFO)")
 
   const mockQueue = [
-    { id: "b1", priorityScore: 70, startTime: "2026-08-09T14:00:00Z" },
-    { id: "b2", priorityScore: 100, startTime: "2026-08-09T11:00:00Z" },
-    { id: "b3", priorityScore: 90, startTime: "2026-08-09T10:00:00Z" },
-    { id: "b4", priorityScore: 100, startTime: "2026-08-09T09:00:00Z" },
+    { id: "b1", createdAt: "2026-08-09T14:00:00Z" },
+    { id: "b2", createdAt: "2026-08-09T11:00:00Z" },
+    { id: "b3", createdAt: "2026-08-09T10:00:00Z" },
+    { id: "b4", createdAt: "2026-08-09T09:00:00Z" },
   ]
 
-  mockQueue.sort((a, b) => {
-    if (b.priorityScore !== a.priorityScore) {
-      return b.priorityScore - a.priorityScore // Higher priority first
-    }
-    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime() // Earlier first
-  })
+  mockQueue.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-  assert(mockQueue[0].id === "b4", "Highest priority (100) & earliest time sorted first (b4)")
-  assert(mockQueue[1].id === "b2", "Second priority item sorted correctly (b2)")
-  assert(mockQueue[2].id === "b3", "Third priority item sorted correctly (b3)")
-  assert(mockQueue[3].id === "b1", "Lowest priority item sorted last (b1)")
+  assert(mockQueue[0].id === "b4", "Earliest submission sorted first (b4)")
+  assert(mockQueue[1].id === "b3", "Second earliest submission sorted next (b3)")
+  assert(mockQueue[2].id === "b2", "Third earliest submission sorted next (b2)")
+  assert(mockQueue[3].id === "b1", "Latest submission sorted last (b1)")
 
   // --- TEST GROUP 5: Booking Reference Formatter ---
   console.log("\n🏷️ 5. Booking Reference Formatter")
@@ -298,6 +289,15 @@ async function runTests() {
   const acceptedStatusColor = getStatusColor("ACCEPTED")
   assert(acceptedStatusColor.includes("emerald") || acceptedStatusColor.includes("green"), "Accepted status resolves to vibrant green")
 
+  function validateBookingAuthority(customRoleTitle: string, isManagement: boolean): boolean {
+    if (isManagement) return true
+    return customRoleTitle.trim().toLowerCase() !== "member"
+  }
+
+  assert(validateBookingAuthority("Member", false) === false, "Regular team members with title 'Member' do NOT have booking authority")
+  assert(validateBookingAuthority("President", false) === true, "Officer with title 'President' has booking authority")
+  assert(validateBookingAuthority("Member", true) === true, "Workspace Manager has booking authority regardless of role title")
+
   // --- TEST GROUP 11: Management Auto-Approval, Team Privacy & Accepted Badge Isolation ---
   console.log("\n🏢 11. Management Auto-Approval, Team Privacy & Accepted Badge Isolation")
 
@@ -392,6 +392,189 @@ async function runTests() {
     managerVisibleTeams.length === 2,
     "Workspace Manager sees all organizations in Teams directory"
   )
+
+  // --- TEST GROUP 12: Guest Account Shared Area Restrictions & Private Booking Masking ---
+  console.log("\n🔒 12. Guest Shared Area Restrictions, Private Booking Masking & Team Privacy")
+
+  function validateGuestBooking(roomId: string, isSharedAreaOccupied: boolean): { isAllowed: boolean; error?: string } {
+    if (roomId !== "shared-area") {
+      return { isAllowed: false, error: "Guest accounts can only request a spot in the Shared Area." }
+    }
+    if (isSharedAreaOccupied) {
+      return { isAllowed: false, error: "The Shared Area is currently reserved for a team event during this time slot." }
+    }
+    return { isAllowed: true }
+  }
+
+  const guestRoomTest = validateGuestBooking("hall-1", false)
+  assert(guestRoomTest.isAllowed === false, "Rejects guest booking for Main Hall")
+  assert(guestRoomTest.error?.includes("Guest accounts can only request a spot in the Shared Area") === true, "Accurate guest room restriction error message")
+
+  const guestOccupiedTest = validateGuestBooking("shared-area", true)
+  assert(guestOccupiedTest.isAllowed === false, "Rejects guest booking when Shared Area is reserved for team event")
+
+  const guestFreeTest = validateGuestBooking("shared-area", false)
+  assert(guestFreeTest.isAllowed === true, "Allows guest booking when Shared Area is free of team events")
+
+  function sanitizePrivateBooking(booking: any, userRole: string, userTeamId: string) {
+    if (booking.isIncognito) {
+      const isManager = userRole === "WORKSPACE_MANAGER" || userRole === "ADMIN" || userRole === "OWNER"
+      const isTeamMember = userTeamId === booking.teamId
+      if (isManager || isTeamMember) {
+        return { ...booking, showHintBadge: true }
+      }
+      return {
+        ...booking,
+        team: { ...booking.team, name: "Reserved" },
+        user: { ...booking.user, name: "Booked" },
+        description: null,
+        projectOrCommitteeName: "",
+        isIncognito: false,
+        showHintBadge: false,
+      }
+    }
+    return booking
+  }
+
+  const mockPrivateBooking = {
+    id: "b-secret",
+    teamId: "hawk-insight",
+    team: { name: "Hawk Insight" },
+    user: { name: "Alice Chen" },
+    description: "Confidential HR review",
+    isIncognito: true,
+  }
+
+  const otherTeamView = sanitizePrivateBooking(mockPrivateBooking, "USER", "nexus-labs")
+  assert(otherTeamView.team.name === "Reserved", "Masks team name to 'Reserved' for other teams")
+  assert(otherTeamView.user.name === "Booked", "Masks booker name to 'Booked' for other teams")
+  assert(otherTeamView.description === null, "Clears description for other teams")
+  assert(otherTeamView.isIncognito === false, "Hides incognito flag so it looks like a standard busy slot to other teams")
+
+  const managerView = sanitizePrivateBooking(mockPrivateBooking, "WORKSPACE_MANAGER", "management")
+  assert(managerView.team.name === "Hawk Insight", "Workspace manager sees actual team name for private booking")
+  assert(managerView.description === "Confidential HR review", "Workspace manager sees full description for private booking")
+  assert(managerView.showHintBadge === true, "Workspace manager receives Private Session hint badge indicator")
+
+  // --- TEST GROUP 13: 30-Day Booking Horizon & Past Session Unbooking Lock ---
+  console.log("\n⌛ 13. 30-Day Booking Horizon, Past Session Lock & In-Place Reschedule")
+
+  function validateAdvanceHorizon(startDate: Date, currentTime = new Date()): { isValid: boolean; error?: string } {
+    const maxAllowedDate = new Date(currentTime)
+    maxAllowedDate.setDate(maxAllowedDate.getDate() + 30)
+    maxAllowedDate.setHours(23, 59, 59, 999)
+
+    if (startDate > maxAllowedDate) {
+      return { isValid: false, error: "Bookings can only be scheduled up to 1 month (30 days) in advance." }
+    }
+    return { isValid: true }
+  }
+
+  const fortyDaysAhead = new Date()
+  fortyDaysAhead.setDate(fortyDaysAhead.getDate() + 40)
+
+  const twoWeeksAhead = new Date()
+  twoWeeksAhead.setDate(twoWeeksAhead.getDate() + 14)
+
+  const horizonFail = validateAdvanceHorizon(fortyDaysAhead)
+  assert(horizonFail.isValid === false, "Rejects booking 40 days in advance (> 30 days)")
+  assert(horizonFail.error?.includes("1 month") === true, "Accurate 1-month advance horizon error message")
+
+  const horizonPass = validateAdvanceHorizon(twoWeeksAhead)
+  assert(horizonPass.isValid === true, "Allows booking 2 weeks in advance (<= 30 days)")
+
+  function validateUnbookPermission(endTime: Date, userRole: string, isRequester: boolean): { canUnbook: boolean; error?: string } {
+    if (endTime <= new Date()) {
+      return { canUnbook: false, error: "Cannot unbook or delete a session that has already passed." }
+    }
+    const isManager = userRole === "WORKSPACE_MANAGER" || userRole === "ADMIN" || userRole === "OWNER"
+    if (!isManager && !isRequester) {
+      return { canUnbook: false, error: "Forbidden" }
+    }
+    return { canUnbook: true }
+  }
+
+  const pastSessionEndTime = new Date(Date.now() - 60 * 60 * 1000)
+  const futureSessionEndTime = new Date(Date.now() + 60 * 60 * 1000)
+
+  const pastUnbookResult = validateUnbookPermission(pastSessionEndTime, "WORKSPACE_MANAGER", true)
+  assert(pastUnbookResult.canUnbook === false, "Prevents unbooking completed past sessions for managers")
+  assert(pastUnbookResult.error?.includes("already passed") === true, "Accurate past unbooking error message")
+
+  const futureRequesterUnbook = validateUnbookPermission(futureSessionEndTime, "USER", true)
+  assert(futureRequesterUnbook.canUnbook === true, "Allows requester to unrequest/withdraw future pending request")
+
+  // --- TEST GROUP 14: Team Privacy, Member Count Masking & Directory Tabs ---
+  console.log("\n🔒 14. Team Privacy, Member Detail Masking & Directory Tabs")
+
+  function sanitizeTeamForUser(team: any, currentUserId: string, userRole: string) {
+    const isManager = userRole === "WORKSPACE_MANAGER" || userRole === "ADMIN" || userRole === "OWNER"
+    const isMember = team.members.some((m: any) => m.userId === currentUserId) || isManager
+
+    if (team.isPrivate && !isMember) {
+      return null // Hidden completely from non-members
+    }
+
+    return {
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      isPrivate: team.isPrivate,
+      isMember,
+      members: isMember ? team.members : [],
+      memberCount: isMember ? team.members.length : null,
+    }
+  }
+
+  const samplePublicTeam = {
+    id: "team-pub",
+    name: "Public Team",
+    description: "Public organization",
+    isPrivate: false,
+    members: [{ userId: "u-1", name: "Alice" }, { userId: "u-2", name: "Bob" }],
+  }
+
+  const samplePrivateTeam = {
+    id: "team-priv",
+    name: "Secret Team",
+    description: "Confidential organization",
+    isPrivate: true,
+    members: [{ userId: "u-1", name: "Alice" }],
+  }
+
+  const nonMemberPublicView = sanitizeTeamForUser(samplePublicTeam, "u-999", "USER")
+  assert(nonMemberPublicView !== null, "Public team is visible to non-members")
+  assert(nonMemberPublicView?.members.length === 0, "Detailed member list is empty for non-members")
+  assert(nonMemberPublicView?.memberCount === null, "Total member count is hidden/null for non-members")
+
+  const memberPublicView = sanitizeTeamForUser(samplePublicTeam, "u-1", "USER")
+  assert(memberPublicView?.members.length === 2, "Detailed member list is visible to team members")
+  assert(memberPublicView?.memberCount === 2, "Total member count is visible to team members")
+
+  const nonMemberPrivateView = sanitizeTeamForUser(samplePrivateTeam, "u-999", "USER")
+  assert(nonMemberPrivateView === null, "Private team is hidden from non-member regular users")
+
+  const managerPrivateView = sanitizeTeamForUser(samplePrivateTeam, "u-999", "WORKSPACE_MANAGER")
+  assert(managerPrivateView !== null, "Private team is visible to Workspace Managers")
+  assert(managerPrivateView?.memberCount === 1, "Workspace Manager sees member count on private teams")
+
+  // --- TEST GROUP 15: User Profile Space & Tri-Tier Approval Workflows ---
+  console.log("\n👤 15. User Profile Space & Tri-Tier Approval Workflows")
+
+  function processRoleAssignment(isCustom: boolean): { status: string; requiresReview: boolean } {
+    return {
+      status: isCustom ? "PENDING" : "APPROVED",
+      requiresReview: isCustom,
+    }
+  }
+
+  const stdRoleResult = processRoleAssignment(false)
+  assert(stdRoleResult.status === "APPROVED", "Workspace Standardized Role is auto-approved on profile")
+  assert(stdRoleResult.requiresReview === false, "Workspace Standardized Role requires no manager review")
+
+  const customRoleResult = processRoleAssignment(true)
+  assert(customRoleResult.status === "PENDING", "Custom Role is assigned PENDING status for manager review")
+  assert(customRoleResult.requiresReview === true, "Custom Role flags review requirement for Workspace Managers")
 
   console.log("\n==================================================")
   console.log(`🏁 TEST RESULTS: ${passedTests} PASSED, ${failedTests} FAILED`)

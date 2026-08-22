@@ -40,6 +40,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, getInitials } from "@/lib/utils"
 import type { Room, BookingWithRelations, UserTeamRole, Team, FloorPlanRoom } from "@/types"
+import { SiteNotificationModal, NotificationState } from "@/components/ui/SiteNotificationModal"
 
 const DEFAULT_COORDINATES: Record<string, { path: string; centerX: number; centerY: number }> = {
   "hall-1": {
@@ -146,7 +147,9 @@ export default function HomePage() {
   const [personaSwitcherOpen, setPersonaSwitcherOpen] = useState(false)
   const [teamsModalOpen, setTeamsModalOpen] = useState(false)
   const [partnersModalOpen, setPartnersModalOpen] = useState(false)
+  const [notification, setNotification] = useState<NotificationState | null>(null)
 
+  const [mounted, setMounted] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const realtimeBookings = useRealtimeBookings(bookings)
@@ -159,6 +162,10 @@ export default function HomePage() {
 
   const isManager =
     session?.user?.systemRole === "WORKSPACE_MANAGER" || session?.user?.systemRole === "ADMIN"
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Update clock every minute
   useEffect(() => {
@@ -175,9 +182,13 @@ export default function HomePage() {
           .toISOString()
           .split("T")[0]
 
-        const [bookingsRes, roomsRes] = await Promise.all([
+        const isAuth = status === "authenticated"
+
+        const [bookingsRes, roomsRes, rolesRes, notifRes] = await Promise.all([
           fetch(`/api/bookings?startDate=${todayStr}&endDate=${futureDateStr}`),
           fetch("/api/rooms"),
+          isAuth ? fetch("/api/teams") : Promise.resolve(null),
+          isAuth ? fetch("/api/notifications?limit=10") : Promise.resolve(null),
         ])
 
         if (bookingsRes.ok) {
@@ -190,55 +201,45 @@ export default function HomePage() {
           setRooms(roomsData)
         }
 
-        // If authenticated, fetch user roles & notifications
-        if (status === "authenticated") {
-          const [rolesRes, notifRes] = await Promise.all([
-            fetch("/api/teams"),
-            fetch("/api/notifications?limit=10"),
-          ])
+        if (rolesRes && rolesRes.ok) {
+          const roles = await rolesRes.json()
+          if (Array.isArray(roles)) {
+            setUserRoles(
+              roles.map((r: any) => {
+                const teamObj: Team = r.team || {
+                  id: r.id || r.teamId || "team-default",
+                  name: r.name || "Default Team",
+                  description: r.description || null,
+                  createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+                  updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
+                }
 
-          if (rolesRes.ok) {
-            const roles = await rolesRes.json()
-            if (Array.isArray(roles)) {
-              setUserRoles(
-                roles.map(
-                  (r: any) => {
-                    const teamObj: Team = r.team || {
-                      id: r.id || r.teamId || "team-default",
-                      name: r.name || "Default Team",
-                      description: r.description || null,
-                      createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
-                      updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
-                    }
-
-                    return {
-                      id: r.userTeamRoleId || r.id || `utr-${Math.random()}`,
-                      userId: session?.user?.id || "",
-                      user: {
-                        id: session?.user?.id || "",
-                        name: session?.user?.name || null,
-                        email: session?.user?.email || "",
-                        image: session?.user?.image || null,
-                        provider: "credentials",
-                        systemRole: (session?.user?.systemRole as any) || "USER",
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                      },
-                      teamId: teamObj.id,
-                      team: teamObj,
-                      committeeName: r.committeeName || null,
-                      customRoleTitle: r.userRole || r.customRoleTitle || "Member",
-                      createdAt: new Date(),
-                    }
-                  }
-                )
-              )
-            }
+                return {
+                  id: r.userTeamRoleId || r.id || `utr-${Math.random()}`,
+                  userId: session?.user?.id || "",
+                  user: {
+                    id: session?.user?.id || "",
+                    name: session?.user?.name || null,
+                    email: session?.user?.email || "",
+                    image: session?.user?.image || null,
+                    provider: "credentials",
+                    systemRole: (session?.user?.systemRole as any) || "USER",
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                  teamId: teamObj.id,
+                  team: teamObj,
+                  committeeName: r.committeeName || null,
+                  customRoleTitle: r.userRole || r.customRoleTitle || "Member",
+                  createdAt: new Date(),
+                }
+              })
+            )
           }
+        }
 
-          if (notifRes.ok) {
-            setNotifications(await notifRes.json())
-          }
+        if (notifRes && notifRes.ok) {
+          setNotifications(await notifRes.json())
         }
       } catch (error) {
         console.error("Failed to fetch initial data:", error)
@@ -285,10 +286,20 @@ export default function HomePage() {
       setBookings((prev) => [...prev, newBooking])
       setBookingModalOpen(false)
       setBookingRoomId(null)
-      alert("🎉 Booking request submitted! A workspace manager will review it shortly.")
+      setNotification({
+        isOpen: true,
+        title: "Booking Request Submitted",
+        message: "🎉 Your reservation request has been submitted! Workspace managers will review it shortly.",
+        type: "success",
+      })
     } catch (error) {
       console.error("Booking failed:", error)
-      alert(error instanceof Error ? error.message : "Booking failed")
+      setNotification({
+        isOpen: true,
+        title: "Booking Failed",
+        message: error instanceof Error ? error.message : "Booking request could not be processed.",
+        type: "error",
+      })
     }
   }
 
@@ -459,7 +470,9 @@ export default function HomePage() {
             {/* Current Clock Time */}
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-mono bg-muted/40 px-2.5 py-1 rounded-lg border border-border">
               <Clock className="h-3.5 w-3.5 text-primary" />
-              <span>{currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+              <span suppressHydrationWarning>
+                {mounted ? currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}
+              </span>
             </div>
           </div>
         </header>
@@ -489,6 +502,8 @@ export default function HomePage() {
         initialRoomId={bookingRoomId || undefined}
         initialDate={new Date()}
       />
+
+      <SiteNotificationModal notification={notification} onClose={() => setNotification(null)} />
     </div>
   )
 }

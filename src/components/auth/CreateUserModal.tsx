@@ -26,20 +26,30 @@ interface TeamOption {
 }
 
 const DEFAULT_WORKSPACE_TEAMS: TeamOption[] = [
+  { id: "hacker-rank-aufs", name: "HackerRank AUFS" },
   { id: "hawk-insight", name: "Hawk Insight" },
-  { id: "hackerrank-aufs", name: "HackerRank AUFS" },
-  { id: "phd", name: "PHD" },
   { id: "nexus-labs", name: "Nexus Labs" },
+  { id: "phd", name: "PHD" },
+]
+
+export const WORKSPACE_PRESET_ROLES = [
+  "Founder",
+  "Head",
+  "President",
+  "Project Manager",
+  "Vice Head",
+  "Vice President",
+  "Vice Project Manager",
 ]
 
 export const PREDETERMINED_ROLES = [
-  "Member",
-  "Senior Member",
-  "Lead / Coordinator",
-  "Head of Committee",
-  "Director / President",
-  "Founder / Co-Founder",
-  "Guest / Contributor",
+  "Founder",
+  "Head",
+  "President",
+  "Project Manager",
+  "Vice Head",
+  "Vice President",
+  "Vice Project Manager",
 ]
 
 interface CreateUserModalProps {
@@ -58,15 +68,15 @@ export function CreateUserModal({
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [accountType, setAccountType] = useState<"member" | "management">("member")
+  const [accountType, setAccountType] = useState<"member" | "management" | "guest">("member")
   const [systemRole, setSystemRole] = useState<"USER" | "WORKSPACE_MANAGER" | "ADMIN">("USER")
 
   const [teams, setTeams] = useState<TeamOption[]>(DEFAULT_WORKSPACE_TEAMS)
   // Not required by default: empty string means independent / no team
   const [selectedTeamId, setSelectedTeamId] = useState<string>("")
 
-  const [committeeName, setCommitteeName] = useState("Engineering")
-  const [selectedRole, setSelectedRole] = useState<string>("Member")
+  const [committeeName, setCommitteeName] = useState("")
+  const [selectedRole, setSelectedRole] = useState<string>("")
   const [customRoleInput, setCustomRoleInput] = useState<string>("")
 
   const [isLoading, setIsLoading] = useState(false)
@@ -79,21 +89,16 @@ export function CreateUserModal({
       fetch("/api/teams")
         .then((res) => res.json())
         .then((data) => {
-          if (Array.isArray(data) && data.length > 0) {
-            const mapped = Array.from(
-              new Map(
-                data
-                  .filter((t: any) => t.status === "APPROVED" || !t.status)
-                  .map((t: any) => [
-                    t.id || t.teamId,
-                    { id: t.id || t.teamId, name: t.name || t.team?.name || t.id },
-                  ])
-              ).values()
-            )
-            const combined = Array.from(
-              new Map([...DEFAULT_WORKSPACE_TEAMS, ...mapped].map((t) => [t.id, t])).values()
-            )
-            setTeams(combined)
+          if (Array.isArray(data)) {
+            const dynamicTeams: TeamOption[] = data
+              .filter((t: any) => t.status === "APPROVED" || !t.status)
+              .map((t: any) => ({
+                id: t.id,
+                name: t.name,
+              }))
+            if (dynamicTeams.length > 0) {
+              setTeams(dynamicTeams)
+            }
           }
         })
         .catch(() => {
@@ -127,10 +132,10 @@ export function CreateUserModal({
         name: name.trim(),
         email: email.trim(),
         password: password.trim(),
-        systemRole: accountType === "management" ? systemRole : "USER",
+        systemRole: accountType === "management" ? systemRole : accountType === "guest" ? "GUEST" : "USER",
         teamId: accountType === "member" && selectedTeamId ? selectedTeamId : undefined,
         committeeName: accountType === "member" && selectedTeamId ? committeeName.trim() : undefined,
-        customRoleTitle: accountType === "member" && selectedTeamId ? finalRoleTitle : undefined,
+        customRoleTitle: accountType === "member" && selectedTeamId ? finalRoleTitle : accountType === "guest" ? "Guest Contributor" : undefined,
         roleStatus: isCustomRole ? "PENDING" : "APPROVED",
       }
 
@@ -264,6 +269,16 @@ export function CreateUserModal({
                   </p>
                 </button>
               </div>
+
+              {/* Management Authority Review Notice */}
+              {accountType === "management" && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-900 dark:text-purple-200 text-xs flex items-start gap-2.5">
+                  <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">High-Level Authority Review Required:</span> Creating a management account requires review and authorization by the Workspace Owner before management privileges are activated.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Basic Info */}
@@ -348,7 +363,7 @@ export function CreateUserModal({
                     onChange={(e) => setSelectedTeamId(e.target.value)}
                     className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                   >
-                    <option value="">-- None (Independent / Not assigned to a team) --</option>
+                    <option value="" disabled>Select an Organization</option>
                     {teams.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
@@ -378,12 +393,13 @@ export function CreateUserModal({
                           onChange={(e) => setSelectedRole(e.target.value)}
                           className="w-full h-9 rounded-xl border border-input bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                         >
+                          <option value="" disabled>Select a Role Title</option>
                           {PREDETERMINED_ROLES.map((role) => (
                             <option key={role} value={role}>
                               {role}
                             </option>
                           ))}
-                          <option value="__custom__">+ Custom Role (Pending Approval)</option>
+                          <option value="__custom__">+ Custom Role (Pending)</option>
                         </select>
                       </div>
                     </div>

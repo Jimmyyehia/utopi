@@ -261,6 +261,9 @@ export function BookingModal({
     session?.user?.systemRole === "OWNER" ||
     session?.user?.systemRole === "WORKSPACE_MANAGER" ||
     session?.user?.systemRole === "ADMIN"
+  const isGuest = session?.user?.systemRole === "GUEST"
+
+  const [isIncognito, setIsIncognito] = useState(false)
 
   const {
     register,
@@ -273,9 +276,13 @@ export function BookingModal({
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      roomId: initialRoomId || (rooms.length > 0 ? rooms[0].id : ""),
+      roomId: isGuest ? "shared-area" : initialRoomId || (rooms.length > 0 ? rooms[0].id : ""),
       userTeamRoleId: userRoles.length > 0 ? userRoles[0].id : "",
-      projectOrCommitteeName: isManagement ? `${session?.user?.name || "Management"} Session` : "",
+      projectOrCommitteeName: isManagement
+        ? `${session?.user?.name || "Management"} Session`
+        : isGuest
+        ? "Coworking Reservation"
+        : "",
       startTime: defaultStart,
       endTime: defaultEnd,
       description: "",
@@ -285,15 +292,21 @@ export function BookingModal({
   const watchedRoleId = watch("userTeamRoleId")
 
   useEffect(() => {
-    if (initialRoomId) {
+    if (isGuest) {
+      setValue("roomId", "shared-area")
+    } else if (initialRoomId) {
       setValue("roomId", initialRoomId)
     }
-  }, [initialRoomId, setValue])
+  }, [initialRoomId, isGuest, setValue])
 
   useEffect(() => {
     if (isManagement) {
       if (!watch("projectOrCommitteeName")) {
         setValue("projectOrCommitteeName", `${session?.user?.name || "Management"} Session`, { shouldValidate: true })
+      }
+    } else if (isGuest) {
+      if (!watch("projectOrCommitteeName")) {
+        setValue("projectOrCommitteeName", "Coworking Reservation", { shouldValidate: true })
       }
     } else {
       const role = userRoles.find((r) => r.id === watchedRoleId)
@@ -302,7 +315,7 @@ export function BookingModal({
         setValue("projectOrCommitteeName", role.committeeName || role.team.name, { shouldValidate: true })
       }
     }
-  }, [watchedRoleId, userRoles, setValue, isManagement, session?.user?.name])
+  }, [watchedRoleId, userRoles, setValue, isManagement, isGuest, session?.user?.name])
 
   const handleRoleChange = useCallback(
     (roleId: string) => {
@@ -311,16 +324,32 @@ export function BookingModal({
     [setValue]
   )
 
+  const [submittedBooking, setSubmittedBooking] = useState<{
+    reference: string
+    roomName: string
+    timeSpan: string
+    status: string
+  } | null>(null)
+
   const onFormSubmit = async (data: BookingFormValues) => {
     const activeRole = userRoles.find((r) => r.id === data.userTeamRoleId)
     await onSubmit({
-      roomId: data.roomId,
+      roomId: isGuest ? "shared-area" : data.roomId,
       teamId: activeRole?.team.id || "",
-      userTeamRoleId: data.userTeamRoleId || (isManagement ? "management-role" : ""),
+      userTeamRoleId: data.userTeamRoleId || (isManagement || isGuest ? "guest-role" : ""),
       projectOrCommitteeName: data.projectOrCommitteeName,
       startTime: data.startTime,
       endTime: data.endTime,
       description: data.description || "",
+      isIncognito,
+    })
+
+    const ref = `UTP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+    setSubmittedBooking({
+      reference: ref,
+      roomName: rooms.find((r) => r.id === (isGuest ? "shared-area" : data.roomId))?.name || "Selected Room",
+      timeSpan: `${data.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${data.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      status: isManagement ? "APPROVED" : "PENDING",
     })
   }
 
@@ -455,37 +484,120 @@ export function BookingModal({
                 </div>
               </div>
 
-              {/* Date & Time Selectors */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Controller
-                  name="startTime"
-                  control={control}
-                  render={({ field }) => (
-                    <DateTimePicker
-                      label="Start Time"
-                      value={field.value}
-                      minDate={new Date()}
-                      onChange={field.onChange}
-                      error={errors.startTime?.message}
-                      disabled={isSubmitting || isLoading}
-                    />
-                  )}
-                />
+              {/* Reservation Date & Time Range Section */}
+              <div className="space-y-3 p-4 rounded-xl bg-muted/30 border border-border/80">
+                {/* Single Reservation Date Selector */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    Reservation Date (Up to 1 Month Ahead)
+                  </Label>
+                  <Input
+                    type="date"
+                    value={watch("startTime") ? new Date(watch("startTime")).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}
+                    min={new Date().toISOString().split("T")[0]}
+                    max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      const newDateStr = e.target.value
+                      if (!newDateStr) return
+                      const currentStart = new Date(watch("startTime"))
+                      const currentEnd = new Date(watch("endTime"))
 
-                <Controller
-                  name="endTime"
-                  control={control}
-                  render={({ field }) => (
-                    <DateTimePicker
-                      label="End Time"
-                      value={field.value}
-                      minDate={new Date()}
-                      onChange={field.onChange}
-                      error={errors.endTime?.message}
+                      const [yr, mo, dy] = newDateStr.split("-").map(Number)
+                      currentStart.setFullYear(yr, mo - 1, dy)
+                      currentEnd.setFullYear(yr, mo - 1, dy)
+
+                      setValue("startTime", currentStart, { shouldValidate: true })
+                      setValue("endTime", currentEnd, { shouldValidate: true })
+                    }}
+                    disabled={isSubmitting || isLoading}
+                    className="bg-card font-medium"
+                  />
+                </div>
+
+                {/* From & To Time Selectors */}
+                <div className="grid gap-4 sm:grid-cols-2 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      From (Start Time)
+                    </Label>
+                    <Select
+                      value={
+                        watch("startTime")
+                          ? `${String(new Date(watch("startTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("startTime")).getMinutes()).padStart(2, "0")}`
+                          : "09:00"
+                      }
+                      onValueChange={(val) => {
+                        const [hours, minutes] = val.split(":").map(Number)
+                        const currentStart = new Date(watch("startTime"))
+                        currentStart.setHours(hours, minutes, 0, 0)
+                        setValue("startTime", currentStart, { shouldValidate: true })
+
+                        // Auto-adjust End Time if it's before or equal to Start Time
+                        const currentEnd = new Date(watch("endTime"))
+                        if (currentEnd <= currentStart) {
+                          const newEnd = new Date(currentStart.getTime() + 60 * 60 * 1000)
+                          setValue("endTime", newEnd, { shouldValidate: true })
+                        }
+                      }}
                       disabled={isSubmitting || isLoading}
-                    />
-                  )}
-                />
+                    >
+                      <SelectTrigger className="w-full bg-card font-mono text-xs">
+                        <SelectValue placeholder="Select start time" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        {HALF_HOUR_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.startTime && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {errors.startTime.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      To (End Time)
+                    </Label>
+                    <Select
+                      value={
+                        watch("endTime")
+                          ? `${String(new Date(watch("endTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("endTime")).getMinutes()).padStart(2, "0")}`
+                          : "10:00"
+                      }
+                      onValueChange={(val) => {
+                        const [hours, minutes] = val.split(":").map(Number)
+                        const currentEnd = new Date(watch("endTime"))
+                        currentEnd.setHours(hours, minutes, 0, 0)
+                        setValue("endTime", currentEnd, { shouldValidate: true })
+                      }}
+                      disabled={isSubmitting || isLoading}
+                    >
+                      <SelectTrigger className="w-full bg-card font-mono text-xs">
+                        <SelectValue placeholder="Select end time" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        {HALF_HOUR_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.endTime && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {errors.endTime.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Description */}
@@ -500,6 +612,36 @@ export function BookingModal({
                   disabled={isSubmitting || isLoading}
                 />
               </div>
+
+              {/* Private Booking (Incognito) Toggle */}
+              <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-3">
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-foreground">
+                    <ShieldCheck className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    <span>Mark as Private Booking</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Session details are hidden from other teams (visible only to your team and workspace managers).
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="incognito-toggle"
+                  checked={isIncognito}
+                  onChange={(e) => setIsIncognito(e.target.checked)}
+                  className="h-4 w-4 rounded border-purple-400 text-purple-600 focus:ring-purple-500 cursor-pointer flex-shrink-0"
+                />
+              </div>
+
+              {/* No Booking Authority Warning for Member Role */}
+              {!isManagement && !isGuest && selectedRole?.customRoleTitle?.trim().toLowerCase() === "member" && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Booking Authority Required:</span> Regular team members with the title <strong>Member</strong> do not have room booking authority. Only team officers (President, Vice President, Head, Vice Head, Project Manager, Vice Project Manager) or workspace management can request room bookings.
+                  </div>
+                </div>
+              )}
 
               {/* Summary Card */}
               {selectedRole && (
@@ -516,7 +658,7 @@ export function BookingModal({
                   <div className="grid grid-cols-2 gap-2 text-muted-foreground pt-1">
                     <div>
                       <span className="block font-medium text-foreground">Submitting as:</span>
-                      <span>{selectedRole.customRoleTitle} ({selectedRole.team.name})</span>
+                      <span className="text-foreground font-medium">{selectedRole.team.name}</span>
                     </div>
                     <div>
                       <span className="block font-medium text-foreground">Room:</span>
@@ -547,7 +689,11 @@ export function BookingModal({
               <Button
                 type="submit"
                 form="booking-form"
-                disabled={isSubmitting || isLoading || userRoles.length === 0}
+                disabled={
+                  isSubmitting ||
+                  isLoading ||
+                  (!isManagement && !isGuest && (userRoles.length === 0 || selectedRole?.customRoleTitle?.trim().toLowerCase() === "member"))
+                }
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 gap-2"
               >
                 {isSubmitting ? (
@@ -561,11 +707,63 @@ export function BookingModal({
                 ) : (
                   <>
                     <Calendar className="h-4 w-4" />
-                    Submit for Approval
+                    <span>{isManagement ? "Confirm Reservation" : "Submit for Approval"}</span>
                   </>
                 )}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {submittedBooking && (
+        <Dialog open={true} onOpenChange={() => { setSubmittedBooking(null); onClose(); }}>
+          <DialogContent className="max-w-md p-6 bg-card border-border shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+            <div className="space-y-1">
+              <DialogTitle className="text-xl font-bold text-foreground">
+                {submittedBooking.status === "APPROVED" ? "Reservation Confirmed! 🎉" : "Booking Request Submitted! 🚀"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {submittedBooking.status === "APPROVED"
+                  ? "Your room reservation has been auto-approved."
+                  : "Your request has been submitted to workspace management for review."}
+              </DialogDescription>
+            </div>
+
+            <div className="p-4 rounded-xl bg-muted/40 border border-border/80 text-xs space-y-2.5 text-left">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <span className="text-muted-foreground">Reference Code:</span>
+                <span className="font-mono font-bold text-primary">{submittedBooking.reference}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Reserved Room:</span>
+                <span className="font-semibold text-foreground">{submittedBooking.roomName}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Time Slot:</span>
+                <span className="font-mono font-bold text-foreground">{submittedBooking.timeSpan}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Payment Method:</span>
+                <span className="font-bold text-orange-600">💵 Cash on Arrival</span>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-muted-foreground">Status:</span>
+                <Badge variant="outline" className={cn("text-[10px] font-bold", submittedBooking.status === "APPROVED" ? "bg-emerald-500/10 text-emerald-600 border-emerald-400" : "bg-amber-500/10 text-amber-600 border-amber-400")}>
+                  {submittedBooking.status === "APPROVED" ? "Auto-Approved" : "Pending Review"}
+                </Badge>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => { setSubmittedBooking(null); onClose(); }}
+              className="w-full h-10 font-bold bg-primary text-primary-foreground rounded-xl shadow-xs"
+            >
+              Got It
+            </Button>
           </DialogContent>
         </Dialog>
       )}

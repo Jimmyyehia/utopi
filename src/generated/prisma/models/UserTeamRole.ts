@@ -30,6 +30,7 @@ export type UserTeamRoleMinAggregateOutputType = {
   teamId: string | null
   committeeName: string | null
   customRoleTitle: string | null
+  status: string | null
   createdAt: Date | null
 }
 
@@ -39,6 +40,7 @@ export type UserTeamRoleMaxAggregateOutputType = {
   teamId: string | null
   committeeName: string | null
   customRoleTitle: string | null
+  status: string | null
   createdAt: Date | null
 }
 
@@ -48,6 +50,7 @@ export type UserTeamRoleCountAggregateOutputType = {
   teamId: number
   committeeName: number
   customRoleTitle: number
+  status: number
   createdAt: number
   _all: number
 }
@@ -59,6 +62,7 @@ export type UserTeamRoleMinAggregateInputType = {
   teamId?: true
   committeeName?: true
   customRoleTitle?: true
+  status?: true
   createdAt?: true
 }
 
@@ -68,6 +72,7 @@ export type UserTeamRoleMaxAggregateInputType = {
   teamId?: true
   committeeName?: true
   customRoleTitle?: true
+  status?: true
   createdAt?: true
 }
 
@@ -77,6 +82,7 @@ export type UserTeamRoleCountAggregateInputType = {
   teamId?: true
   committeeName?: true
   customRoleTitle?: true
+  status?: true
   createdAt?: true
   _all?: true
 }
@@ -159,6 +165,7 @@ export type UserTeamRoleGroupByOutputType = {
   teamId: string
   committeeName: string | null
   customRoleTitle: string
+  status: string
   createdAt: Date
   _count: UserTeamRoleCountAggregateOutputType | null
   _min: UserTeamRoleMinAggregateOutputType | null
@@ -189,6 +196,7 @@ export type UserTeamRoleWhereInput = {
   teamId?: Prisma.StringFilter<"UserTeamRole"> | string
   committeeName?: Prisma.StringNullableFilter<"UserTeamRole"> | string | null
   customRoleTitle?: Prisma.StringFilter<"UserTeamRole"> | string
+  status?: Prisma.StringFilter<"UserTeamRole"> | string
   createdAt?: Prisma.DateTimeFilter<"UserTeamRole"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
@@ -200,6 +208,7 @@ export type UserTeamRoleOrderByWithRelationInput = {
   teamId?: Prisma.SortOrder
   committeeName?: Prisma.SortOrderInput | Prisma.SortOrder
   customRoleTitle?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   team?: Prisma.TeamOrderByWithRelationInput
@@ -215,6 +224,7 @@ export type UserTeamRoleWhereUniqueInput = Prisma.AtLeast<{
   teamId?: Prisma.StringFilter<"UserTeamRole"> | string
   committeeName?: Prisma.StringNullableFilter<"UserTeamRole"> | string | null
   customRoleTitle?: Prisma.StringFilter<"UserTeamRole"> | string
+  status?: Prisma.StringFilter<"UserTeamRole"> | string
   createdAt?: Prisma.DateTimeFilter<"UserTeamRole"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
@@ -226,6 +236,7 @@ export type UserTeamRoleOrderByWithAggregationInput = {
   teamId?: Prisma.SortOrder
   committeeName?: Prisma.SortOrderInput | Prisma.SortOrder
   customRoleTitle?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserTeamRoleCountOrderByAggregateInput
   _max?: Prisma.UserTeamRoleMaxOrderByAggregateInput
@@ -241,6 +252,7 @@ export type UserTeamRoleScalarWhereWithAggregatesInput = {
   teamId?: Prisma.StringWithAggregatesFilter<"UserTeamRole"> | string
   committeeName?: Prisma.StringNullableWithAggregatesFilter<"UserTeamRole"> | string | null
   customRoleTitle?: Prisma.StringWithAggregatesFilter<"UserTeamRole"> | string
+  status?: Prisma.StringWithAggregatesFilter<"UserTeamRole"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserTeamRole"> | Date | string
 }
 
@@ -248,6 +260,7 @@ export type UserTeamRoleCreateInput = {
   id?: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutTeamRolesInput
   team: Prisma.TeamCreateNestedOneWithoutMembersInput
@@ -259,6 +272,7 @@ export type UserTeamRoleUncheckedCreateInput = {
   teamId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -266,6 +280,7 @@ export type UserTeamRoleUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutTeamRolesNestedInput
   team?: Prisma.TeamUpdateOneRequiredWithoutMembersNestedInput
@@ -277,6 +292,7 @@ export type UserTeamRoleUncheckedUpdateInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -286,6 +302,7 @@ export type UserTeamRoleCreateManyInput = {
   teamId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -293,6 +310,7 @@ export type UserTeamRoleUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -302,6 +320,7 @@ export type UserTeamRoleUncheckedUpdateManyInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -328,6 +347,7 @@ export type UserTeamRoleCountOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   committeeName?: Prisma.SortOrder
   customRoleTitle?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -337,6 +357,7 @@ export type UserTeamRoleMaxOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   committeeName?: Prisma.SortOrder
   customRoleTitle?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -346,6 +367,7 @@ export type UserTeamRoleMinOrderByAggregateInput = {
   teamId?: Prisma.SortOrder
   committeeName?: Prisma.SortOrder
   customRoleTitle?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -437,6 +459,7 @@ export type UserTeamRoleCreateWithoutUserInput = {
   id?: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutMembersInput
 }
@@ -446,6 +469,7 @@ export type UserTeamRoleUncheckedCreateWithoutUserInput = {
   teamId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -483,6 +507,7 @@ export type UserTeamRoleScalarWhereInput = {
   teamId?: Prisma.StringFilter<"UserTeamRole"> | string
   committeeName?: Prisma.StringNullableFilter<"UserTeamRole"> | string | null
   customRoleTitle?: Prisma.StringFilter<"UserTeamRole"> | string
+  status?: Prisma.StringFilter<"UserTeamRole"> | string
   createdAt?: Prisma.DateTimeFilter<"UserTeamRole"> | Date | string
 }
 
@@ -490,6 +515,7 @@ export type UserTeamRoleCreateWithoutTeamInput = {
   id?: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutTeamRolesInput
 }
@@ -499,6 +525,7 @@ export type UserTeamRoleUncheckedCreateWithoutTeamInput = {
   userId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -532,6 +559,7 @@ export type UserTeamRoleCreateManyUserInput = {
   teamId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -539,6 +567,7 @@ export type UserTeamRoleUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutMembersNestedInput
 }
@@ -548,6 +577,7 @@ export type UserTeamRoleUncheckedUpdateWithoutUserInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -556,6 +586,7 @@ export type UserTeamRoleUncheckedUpdateManyWithoutUserInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -564,6 +595,7 @@ export type UserTeamRoleCreateManyTeamInput = {
   userId: string
   committeeName?: string | null
   customRoleTitle: string
+  status?: string
   createdAt?: Date | string
 }
 
@@ -571,6 +603,7 @@ export type UserTeamRoleUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutTeamRolesNestedInput
 }
@@ -580,6 +613,7 @@ export type UserTeamRoleUncheckedUpdateWithoutTeamInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -588,6 +622,7 @@ export type UserTeamRoleUncheckedUpdateManyWithoutTeamInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   committeeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customRoleTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -599,6 +634,7 @@ export type UserTeamRoleSelect<ExtArgs extends runtime.Types.Extensions.Internal
   teamId?: boolean
   committeeName?: boolean
   customRoleTitle?: boolean
+  status?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -610,6 +646,7 @@ export type UserTeamRoleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   teamId?: boolean
   committeeName?: boolean
   customRoleTitle?: boolean
+  status?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -621,6 +658,7 @@ export type UserTeamRoleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   teamId?: boolean
   committeeName?: boolean
   customRoleTitle?: boolean
+  status?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -632,10 +670,11 @@ export type UserTeamRoleSelectScalar = {
   teamId?: boolean
   committeeName?: boolean
   customRoleTitle?: boolean
+  status?: boolean
   createdAt?: boolean
 }
 
-export type UserTeamRoleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "teamId" | "committeeName" | "customRoleTitle" | "createdAt", ExtArgs["result"]["userTeamRole"]>
+export type UserTeamRoleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "teamId" | "committeeName" | "customRoleTitle" | "status" | "createdAt", ExtArgs["result"]["userTeamRole"]>
 export type UserTeamRoleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -661,6 +700,7 @@ export type $UserTeamRolePayload<ExtArgs extends runtime.Types.Extensions.Intern
     teamId: string
     committeeName: string | null
     customRoleTitle: string
+    status: string
     createdAt: Date
   }, ExtArgs["result"]["userTeamRole"]>
   composites: {}
@@ -1092,6 +1132,7 @@ export interface UserTeamRoleFieldRefs {
   readonly teamId: Prisma.FieldRef<"UserTeamRole", 'String'>
   readonly committeeName: Prisma.FieldRef<"UserTeamRole", 'String'>
   readonly customRoleTitle: Prisma.FieldRef<"UserTeamRole", 'String'>
+  readonly status: Prisma.FieldRef<"UserTeamRole", 'String'>
   readonly createdAt: Prisma.FieldRef<"UserTeamRole", 'DateTime'>
 }
     

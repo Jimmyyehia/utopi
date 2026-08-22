@@ -48,6 +48,7 @@ export type BookingMinAggregateOutputType = {
   paymentStatus: $Enums.PaymentStatus | null
   priorityScore: number | null
   rejectionReason: string | null
+  isIncognito: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +67,7 @@ export type BookingMaxAggregateOutputType = {
   paymentStatus: $Enums.PaymentStatus | null
   priorityScore: number | null
   rejectionReason: string | null
+  isIncognito: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +86,7 @@ export type BookingCountAggregateOutputType = {
   paymentStatus: number
   priorityScore: number
   rejectionReason: number
+  isIncognito: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -112,6 +115,7 @@ export type BookingMinAggregateInputType = {
   paymentStatus?: true
   priorityScore?: true
   rejectionReason?: true
+  isIncognito?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +134,7 @@ export type BookingMaxAggregateInputType = {
   paymentStatus?: true
   priorityScore?: true
   rejectionReason?: true
+  isIncognito?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -148,6 +153,7 @@ export type BookingCountAggregateInputType = {
   paymentStatus?: true
   priorityScore?: true
   rejectionReason?: true
+  isIncognito?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -253,6 +259,7 @@ export type BookingGroupByOutputType = {
   paymentStatus: $Enums.PaymentStatus
   priorityScore: number
   rejectionReason: string | null
+  isIncognito: boolean
   createdAt: Date
   updatedAt: Date
   _count: BookingCountAggregateOutputType | null
@@ -294,6 +301,7 @@ export type BookingWhereInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFilter<"Booking"> | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFilter<"Booking"> | number
   rejectionReason?: Prisma.StringNullableFilter<"Booking"> | string | null
+  isIncognito?: Prisma.BoolFilter<"Booking"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   room?: Prisma.XOR<Prisma.RoomScalarRelationFilter, Prisma.RoomWhereInput>
@@ -315,6 +323,7 @@ export type BookingOrderByWithRelationInput = {
   paymentStatus?: Prisma.SortOrder
   priorityScore?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  isIncognito?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   room?: Prisma.RoomOrderByWithRelationInput
@@ -339,6 +348,7 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   paymentStatus?: Prisma.EnumPaymentStatusFilter<"Booking"> | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFilter<"Booking"> | number
   rejectionReason?: Prisma.StringNullableFilter<"Booking"> | string | null
+  isIncognito?: Prisma.BoolFilter<"Booking"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   room?: Prisma.XOR<Prisma.RoomScalarRelationFilter, Prisma.RoomWhereInput>
@@ -360,6 +370,7 @@ export type BookingOrderByWithAggregationInput = {
   paymentStatus?: Prisma.SortOrder
   priorityScore?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  isIncognito?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
@@ -386,6 +397,7 @@ export type BookingScalarWhereWithAggregatesInput = {
   paymentStatus?: Prisma.EnumPaymentStatusWithAggregatesFilter<"Booking"> | $Enums.PaymentStatus
   priorityScore?: Prisma.IntWithAggregatesFilter<"Booking"> | number
   rejectionReason?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  isIncognito?: Prisma.BoolWithAggregatesFilter<"Booking"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
 }
@@ -401,6 +413,7 @@ export type BookingCreateInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   room: Prisma.RoomCreateNestedOneWithoutBookingsInput
@@ -422,6 +435,7 @@ export type BookingUncheckedCreateInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -437,6 +451,7 @@ export type BookingUpdateInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.RoomUpdateOneRequiredWithoutBookingsNestedInput
@@ -458,6 +473,7 @@ export type BookingUncheckedUpdateInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -476,6 +492,7 @@ export type BookingCreateManyInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -491,6 +508,7 @@ export type BookingUpdateManyMutationInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -509,6 +527,7 @@ export type BookingUncheckedUpdateManyInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -537,6 +556,7 @@ export type BookingCountOrderByAggregateInput = {
   paymentStatus?: Prisma.SortOrder
   priorityScore?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  isIncognito?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -559,6 +579,7 @@ export type BookingMaxOrderByAggregateInput = {
   paymentStatus?: Prisma.SortOrder
   priorityScore?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  isIncognito?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -577,6 +598,7 @@ export type BookingMinOrderByAggregateInput = {
   paymentStatus?: Prisma.SortOrder
   priorityScore?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
+  isIncognito?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -730,6 +752,7 @@ export type BookingCreateWithoutUserInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   room: Prisma.RoomCreateNestedOneWithoutBookingsInput
@@ -749,6 +772,7 @@ export type BookingUncheckedCreateWithoutUserInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -795,6 +819,7 @@ export type BookingScalarWhereInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFilter<"Booking"> | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFilter<"Booking"> | number
   rejectionReason?: Prisma.StringNullableFilter<"Booking"> | string | null
+  isIncognito?: Prisma.BoolFilter<"Booking"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
 }
@@ -810,6 +835,7 @@ export type BookingCreateWithoutTeamInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   room: Prisma.RoomCreateNestedOneWithoutBookingsInput
@@ -829,6 +855,7 @@ export type BookingUncheckedCreateWithoutTeamInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -869,6 +896,7 @@ export type BookingCreateWithoutRoomInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutBookingsInput
@@ -888,6 +916,7 @@ export type BookingUncheckedCreateWithoutRoomInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -930,6 +959,7 @@ export type BookingCreateManyUserInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -945,6 +975,7 @@ export type BookingUpdateWithoutUserInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.RoomUpdateOneRequiredWithoutBookingsNestedInput
@@ -964,6 +995,7 @@ export type BookingUncheckedUpdateWithoutUserInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -981,6 +1013,7 @@ export type BookingUncheckedUpdateManyWithoutUserInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -998,6 +1031,7 @@ export type BookingCreateManyTeamInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1013,6 +1047,7 @@ export type BookingUpdateWithoutTeamInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.RoomUpdateOneRequiredWithoutBookingsNestedInput
@@ -1032,6 +1067,7 @@ export type BookingUncheckedUpdateWithoutTeamInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1049,6 +1085,7 @@ export type BookingUncheckedUpdateManyWithoutTeamInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1066,6 +1103,7 @@ export type BookingCreateManyRoomInput = {
   paymentStatus?: $Enums.PaymentStatus
   priorityScore?: number
   rejectionReason?: string | null
+  isIncognito?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1081,6 +1119,7 @@ export type BookingUpdateWithoutRoomInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutBookingsNestedInput
@@ -1100,6 +1139,7 @@ export type BookingUncheckedUpdateWithoutRoomInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1117,6 +1157,7 @@ export type BookingUncheckedUpdateManyWithoutRoomInput = {
   paymentStatus?: Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus
   priorityScore?: Prisma.IntFieldUpdateOperationsInput | number
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isIncognito?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1137,6 +1178,7 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   paymentStatus?: boolean
   priorityScore?: boolean
   rejectionReason?: boolean
+  isIncognito?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
@@ -1158,6 +1200,7 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   paymentStatus?: boolean
   priorityScore?: boolean
   rejectionReason?: boolean
+  isIncognito?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
@@ -1179,6 +1222,7 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   paymentStatus?: boolean
   priorityScore?: boolean
   rejectionReason?: boolean
+  isIncognito?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
@@ -1200,11 +1244,12 @@ export type BookingSelectScalar = {
   paymentStatus?: boolean
   priorityScore?: boolean
   rejectionReason?: boolean
+  isIncognito?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "userId" | "teamId" | "roleTitleUsed" | "projectOrCommitteeName" | "startTime" | "endTime" | "description" | "status" | "paymentStatus" | "priorityScore" | "rejectionReason" | "createdAt" | "updatedAt", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "userId" | "teamId" | "roleTitleUsed" | "projectOrCommitteeName" | "startTime" | "endTime" | "description" | "status" | "paymentStatus" | "priorityScore" | "rejectionReason" | "isIncognito" | "createdAt" | "updatedAt", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1242,6 +1287,7 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     paymentStatus: $Enums.PaymentStatus
     priorityScore: number
     rejectionReason: string | null
+    isIncognito: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["booking"]>
@@ -1683,6 +1729,7 @@ export interface BookingFieldRefs {
   readonly paymentStatus: Prisma.FieldRef<"Booking", 'PaymentStatus'>
   readonly priorityScore: Prisma.FieldRef<"Booking", 'Int'>
   readonly rejectionReason: Prisma.FieldRef<"Booking", 'String'>
+  readonly isIncognito: Prisma.FieldRef<"Booking", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Booking", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Booking", 'DateTime'>
 }

@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import type { FloorPlanRoom, BookingWithRelations } from "@/types"
 import { useRealtimeRoomStatus } from "@/hooks/useSocket"
+import { SiteNotificationModal, NotificationState } from "@/components/ui/SiteNotificationModal"
 
 interface FloorPlanProps {
   rooms: FloorPlanRoom[]
@@ -123,6 +124,7 @@ function RoomTooltip({
     teamName: string
     description?: string
     endTime: string
+    isIncognito?: boolean
   } | null
 }) {
   return (
@@ -148,10 +150,15 @@ function RoomTooltip({
             </span>
             <span className="font-mono text-[11px] text-muted-foreground">Until {currentBooking.endTime}</span>
           </div>
-          <p className="text-xs font-bold text-foreground bg-muted/40 p-2 rounded-lg border border-border">
-            {currentBooking.teamName}
-          </p>
-          {currentBooking.description && (
+          <div className="text-xs font-bold text-foreground bg-muted/40 p-2 rounded-lg border border-border flex items-center justify-between gap-1">
+            <span className="truncate">{currentBooking.teamName}</span>
+            {currentBooking.isIncognito && (
+              <Badge variant="outline" className="text-[8px] py-0 px-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-400 font-bold flex-shrink-0">
+                Private Session
+              </Badge>
+            )}
+          </div>
+          {currentBooking.description && currentBooking.description.trim().length > 0 && (
             <p className="text-[11px] text-muted-foreground italic truncate">
               "{currentBooking.description}"
             </p>
@@ -218,8 +225,10 @@ function RoomSidebar({
 
   const [unbookingId, setUnbookingId] = useState<string | null>(null)
 
+  const [notification, setNotification] = useState<NotificationState | null>(null)
+
   const handleUnbook = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to unbook this space? It will be released immediately.")) {
+    if (!confirm("Are you sure you want to unbook this room reservation?")) {
       return
     }
     setUnbookingId(bookingId)
@@ -233,7 +242,7 @@ function RoomSidebar({
       }
       window.location.reload()
     } catch (err: any) {
-      alert(err.message || "Failed to unbook room.")
+      setNotification({ isOpen: true, title: "Unbook Failed", message: err.message || "Failed to unbook room.", type: "error" })
     } finally {
       setUnbookingId(null)
     }
@@ -256,7 +265,7 @@ function RoomSidebar({
       }
       window.location.reload()
     } catch (err: any) {
-      alert(err.message || "Failed to refuse request.")
+      setNotification({ isOpen: true, title: "Refuse Failed", message: err.message || "Failed to refuse request.", type: "error" })
     } finally {
       setUnbookingId(null)
     }
@@ -398,41 +407,90 @@ function RoomSidebar({
 
                       <div className="flex items-center justify-between gap-2 mt-1">
                         <div className="min-w-0 flex-1">
-                          <p className="font-extrabold text-foreground truncate text-xs">
-                            {booking.team.name}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {booking.description || booking.projectOrCommitteeName || "Session"}
-                          </p>
-                        </div>
-
-                        {isManager && (
-                          <div className="flex items-center gap-1">
-                            {isPending ? (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                disabled={unbookingId === booking.id}
-                                onClick={() => handleRefuse(booking.id)}
-                                className="h-6 text-[10px] gap-1 px-2 rounded-lg font-bold flex-shrink-0 shadow-xs bg-red-600 hover:bg-red-700 text-white"
-                              >
-                                <XCircle className="h-3 w-3" />
-                                <span>{unbookingId === booking.id ? "Refusing..." : "Refuse"}</span>
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                disabled={unbookingId === booking.id}
-                                onClick={() => handleUnbook(booking.id)}
-                                className="h-6 text-[10px] gap-1 px-2 rounded-lg font-bold flex-shrink-0 shadow-xs"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                <span>{unbookingId === booking.id ? "Unbooking..." : "Unbook"}</span>
-                              </Button>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-extrabold text-foreground truncate text-xs">
+                              {booking.team?.name || "Reserved"}
+                            </p>
+                            {booking.isIncognito && (
+                              <Badge variant="outline" className="text-[8px] py-0 px-1 bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-400 font-bold">
+                                Private Session
+                              </Badge>
                             )}
                           </div>
-                        )}
+                          {(booking.description?.trim() || booking.projectOrCommitteeName?.trim()) && (
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {booking.description?.trim() || booking.projectOrCommitteeName?.trim()}
+                            </p>
+                          )}
+                        </div>
+
+                        {(() => {
+                          const isPast = new Date(booking.endTime) <= new Date()
+                          const isRequester = session?.user?.id === booking.userId || session?.user?.email === booking.user?.email
+
+                          if (isPast) {
+                            return (
+                              <Badge variant="outline" className="text-[8px] py-0 px-1 text-muted-foreground border-border">
+                                Passed
+                              </Badge>
+                            )
+                          }
+
+                          if (isManager) {
+                            return (
+                              <div className="flex items-center gap-1">
+                                {isPending ? (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={unbookingId === booking.id}
+                                    onClick={() => handleRefuse(booking.id)}
+                                    className="h-6 text-[10px] gap-1 px-2 rounded-lg font-bold flex-shrink-0 shadow-xs bg-red-600 hover:bg-red-700 text-white"
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                    <span>{unbookingId === booking.id ? "Refusing..." : "Refuse"}</span>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={unbookingId === booking.id}
+                                    onClick={() => handleUnbook(booking.id)}
+                                    className="h-6 text-[10px] gap-1 px-2 rounded-lg font-bold flex-shrink-0 shadow-xs"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    <span>{unbookingId === booking.id ? "Unbooking..." : "Unbook"}</span>
+                                  </Button>
+                                )}
+                              </div>
+                            )
+                          }
+
+                          if (isRequester && isPending) {
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={unbookingId === booking.id}
+                                  onClick={() => handleUnbook(booking.id)}
+                                  className="h-6 text-[9px] gap-1 px-1.5 rounded-lg font-bold border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/10"
+                                >
+                                  Withdraw
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={onBook}
+                                  className="h-6 text-[9px] gap-1 px-1.5 rounded-lg font-bold bg-primary text-primary-foreground"
+                                >
+                                  Reschedule
+                                </Button>
+                              </div>
+                            )
+                          }
+
+                          return null
+                        })()}
                       </div>
                     </div>
                   )
@@ -522,6 +580,7 @@ function RoomSidebar({
           Book {room.name}
         </Button>
       </div>
+      <SiteNotificationModal notification={notification} onClose={() => setNotification(null)} />
     </motion.div>
   )
 }
@@ -636,9 +695,10 @@ export function FloorPlan({
     if (!activeBooking) return null
     
     return {
-      teamName: activeBooking.team?.name || "Tenant Team",
-      description: activeBooking.description || activeBooking.projectOrCommitteeName || "In Progress",
+      teamName: activeBooking.team?.name || "Occupied Space",
+      description: activeBooking.description?.trim() || activeBooking.projectOrCommitteeName?.trim() || "",
       endTime: formatTime(activeBooking.endTime),
+      isIncognito: Boolean(activeBooking.isIncognito),
     }
   }
 

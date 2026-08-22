@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { getInitials } from "@/lib/utils"
+import { getInitials, groupTeamMembers } from "@/lib/utils"
 
 interface TeamDirectoryItem {
   id: string
@@ -38,63 +38,6 @@ interface TeamDirectoryItem {
   }>
 }
 
-const STATIC_TEAMS: TeamDirectoryItem[] = [
-  {
-    id: "hawk-insight",
-    name: "Hawk Insight",
-    description: "Strategic communications, branding, and public relations agency managing enterprise workspace campaigns.",
-    members: [
-      {
-        userId: "user-1",
-        userName: "Alice Chen",
-        userEmail: "alice@hawkinsight.com",
-        committeeName: "PR",
-        customRoleTitle: "PR Head",
-        priorityScore: 100,
-      },
-      {
-        userId: "user-1",
-        userName: "Alice Chen",
-        userEmail: "alice@hawkinsight.com",
-        committeeName: "Engineering",
-        customRoleTitle: "Technical Lead",
-        priorityScore: 90,
-      },
-      {
-        userId: "user-2",
-        userName: "Bob Martinez",
-        userEmail: "bob@hawkinsight.com",
-        committeeName: "Design",
-        customRoleTitle: "Senior Designer",
-        priorityScore: 70,
-      },
-    ],
-  },
-  {
-    id: "nexus-labs",
-    name: "Nexus Labs",
-    description: "Applied artificial intelligence, LLM fine-tuning, and next-generation workspace tools incubator.",
-    members: [
-      {
-        userId: "user-3",
-        userName: "Carol Kim",
-        userEmail: "carol@nexuslabs.com",
-        committeeName: "AI Research",
-        customRoleTitle: "AI Research Lead",
-        priorityScore: 90,
-      },
-      {
-        userId: "user-4",
-        userName: "David Park",
-        userEmail: "david@freelancer.com",
-        committeeName: null,
-        customRoleTitle: "Guest Member",
-        priorityScore: 10,
-      },
-    ],
-  },
-]
-
 interface TeamsModalProps {
   isOpen: boolean
   onClose: () => void
@@ -102,17 +45,60 @@ interface TeamsModalProps {
 
 export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [dbTeams, setDbTeams] = useState<TeamDirectoryItem[]>([])
 
-  const filteredTeams = STATIC_TEAMS.map((team) => ({
-    ...team,
-    members: team.members.filter(
-      (m) =>
-        m.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.customRoleTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (m.committeeName && m.committeeName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        team.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  })).filter((team) => team.members.length > 0 || team.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/teams")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const mapped: TeamDirectoryItem[] = data.map((t: any) => ({
+              id: t.id,
+              name: t.name,
+              description: t.description || "Workspace tenant organization.",
+              members: (t.members || []).map((m: any) => ({
+                userId: m.userId || m.user?.id || "u-dyn",
+                userName: m.user?.name || m.userName || "Member",
+                userEmail: m.user?.email || m.userEmail || "member@utopi.space",
+                committeeName: m.committeeName || null,
+                customRoleTitle: m.customRoleTitle || "Member",
+                priorityScore: 50,
+              })),
+            }))
+            setDbTeams(mapped)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [isOpen])
+
+  const filteredTeams = dbTeams
+    .map((team) => {
+      const grouped = groupTeamMembers(team.members)
+      const filteredGrouped = grouped.filter((m) => {
+        const query = searchQuery.toLowerCase()
+        const matchesName = m.userName.toLowerCase().includes(query)
+        const matchesRole = m.roles.some(
+          (r) =>
+            r.combinedTitle.toLowerCase().includes(query) ||
+            r.customRoleTitle.toLowerCase().includes(query) ||
+            (r.committeeName && r.committeeName.toLowerCase().includes(query))
+        )
+        const matchesTeam = team.name.toLowerCase().includes(query)
+        return matchesName || matchesRole || matchesTeam
+      })
+
+      return {
+        ...team,
+        groupedMembers: filteredGrouped,
+        totalUniqueMembers: grouped.length,
+      }
+    })
+    .filter(
+      (team) =>
+        team.groupedMembers.length > 0 || team.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
 
   return (
     <AnimatePresence>
@@ -134,10 +120,10 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
                 </div>
               </div>
 
-              <div className="relative mt-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative mt-4">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by team, member name, or custom role..."
+                  placeholder="Search by organization name, committee, or member..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-9 text-xs"
@@ -159,32 +145,33 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
                       </p>
                     </div>
                     <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
-                      {team.members.length} Role(s)
+                      {team.totalUniqueMembers} Member(s)
                     </Badge>
                   </div>
 
                   <div className="grid gap-2.5 sm:grid-cols-2">
-                    {team.members.map((member, idx) => (
-                      <Card key={idx} className="border-border bg-muted/30 hover:bg-muted/60 transition-colors">
-                        <CardContent className="p-3 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0">
+                    {team.groupedMembers.map((member) => (
+                      <Card key={member.userId} className="border-border bg-muted/30 hover:bg-muted/60 transition-colors">
+                        <CardContent className="p-3 flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                               {getInitials(member.userName)}
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 space-y-1">
                               <p className="text-xs font-bold text-foreground truncate">{member.userName}</p>
-                              <p className="text-[11px] text-primary font-medium truncate">{member.customRoleTitle}</p>
-                              {member.committeeName && (
-                                <p className="text-[10px] text-muted-foreground truncate">
-                                  Committee: {member.committeeName}
-                                </p>
-                              )}
+                              <div className="flex flex-wrap gap-1">
+                                {member.roles.map((r, rIdx) => (
+                                  <Badge
+                                    key={rIdx}
+                                    variant="outline"
+                                    className="text-[10px] py-0.5 px-1.5 font-semibold text-primary border-primary/30 bg-primary/5"
+                                  >
+                                    {r.combinedTitle}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
                           </div>
-
-                          <Badge variant="outline" className="text-[9px] py-0 px-1.5 font-mono flex-shrink-0">
-                            Score: {member.priorityScore}
-                          </Badge>
                         </CardContent>
                       </Card>
                     ))}

@@ -41,6 +41,10 @@ yarn-error.log*
 *.db-journal
 dev.db*
 
+# scratch & temporary files
+scratch/
+*.log
+
 # vercel
 .vercel
 

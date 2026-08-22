@@ -168,110 +168,12 @@ async function main() {
   }
   console.log("✅ Created rooms (Main Hall: 30, Focus Room: 20 [160px], Meeting Room: 10 [145px], Shared Area: 50)")
 
-  // Delete old bookings & create sample bookings
+  // Clear any old bookings & notifications
   await client.execute("DELETE FROM bookings")
+  await client.execute("DELETE FROM notifications")
+  console.log("✅ Cleared bookings and notifications")
 
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0)
-
-  const bookings = [
-    {
-      id: "booking-1",
-      roomId: "hall-1",
-      userId: "user-1",
-      teamId: "hawk-insight",
-      roleTitleUsed: "PR Head",
-      projectOrCommitteeName: "PR All-Hands",
-      startTime: new Date(todayStart.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(todayStart.getTime() + 4 * 60 * 60 * 1000).toISOString(),
-      description: "Quarterly Strategy & Press Review",
-      status: "APPROVED",
-      paymentStatus: "CASH_PENDING",
-      priorityScore: 100,
-    },
-    {
-      id: "booking-2",
-      roomId: "hall-1",
-      userId: "user-2",
-      teamId: "hawk-insight",
-      roleTitleUsed: "Senior Designer",
-      projectOrCommitteeName: "Design Sprint",
-      startTime: new Date(todayStart.getTime() + 6 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(todayStart.getTime() + 8 * 60 * 60 * 1000).toISOString(),
-      description: "Design Review & Brand Sprint",
-      status: "PENDING",
-      paymentStatus: "CASH_PENDING",
-      priorityScore: 70,
-    },
-    {
-      id: "booking-3",
-      roomId: "hall-3",
-      userId: "user-3",
-      teamId: "nexus-labs",
-      roleTitleUsed: "AI Research Lead",
-      projectOrCommitteeName: "AI Research",
-      startTime: new Date(todayStart.getTime() + 1 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(todayStart.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-      description: "AI Model Development Sync",
-      status: "APPROVED",
-      paymentStatus: "CASH_PENDING",
-      priorityScore: 90,
-    },
-    {
-      id: "booking-4",
-      roomId: "hall-2",
-      userId: "user-4",
-      teamId: "nexus-labs",
-      roleTitleUsed: "Guest Member",
-      projectOrCommitteeName: "Sprint Sync",
-      startTime: new Date(todayStart.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(todayStart.getTime() + 5 * 60 * 60 * 1000).toISOString(),
-      description: "Team Brainstorming & Sync",
-      status: "PENDING",
-      paymentStatus: "CASH_PENDING",
-      priorityScore: 10,
-    },
-    {
-      id: "booking-5",
-      roomId: "shared-area",
-      userId: "user-1",
-      teamId: "hawk-insight",
-      roleTitleUsed: "Technical Lead",
-      projectOrCommitteeName: "Community Day",
-      startTime: new Date(todayStart.getTime() + 4 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(todayStart.getTime() + 7 * 60 * 60 * 1000).toISOString(),
-      description: "Open Co-Working Networking Hour",
-      status: "APPROVED",
-      paymentStatus: "CASH_PENDING",
-      priorityScore: 90,
-    },
-  ]
-
-  for (const booking of bookings) {
-    await client.execute({
-      sql: `INSERT OR REPLACE INTO bookings (id, roomId, userId, teamId, roleTitleUsed, projectOrCommitteeName, startTime, endTime, description, status, paymentStatus, priorityScore, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      args: [booking.id, booking.roomId, booking.userId, booking.teamId, booking.roleTitleUsed, booking.projectOrCommitteeName, booking.startTime, booking.endTime, booking.description, booking.status, booking.paymentStatus, booking.priorityScore],
-    })
-  }
-  console.log("✅ Created sample bookings")
-
-  // Create notifications
-  const notifications = [
-    { id: "notif-1", userId: "user-1", title: "Booking Approved", message: "Your booking for Main Hall (10:00 AM - 12:00 PM) has been approved. Reference: UTP-ABC12345" },
-    { id: "notif-2", userId: "user-2", title: "Booking Pending Approval", message: "Your booking request for Main Hall (2:00 PM - 4:00 PM) is pending manager approval." },
-    { id: "notif-3", userId: "user-3", title: "Booking Approved", message: "Your booking for Focus Room (9:00 AM - 11:00 AM) has been approved. Reference: UTP-XYZ78901" },
-    { id: "notif-4", userId: "user-4", title: "Booking Pending Approval", message: "Your booking request for Meeting Room (11:00 AM - 1:00 PM) is pending manager approval." },
-  ]
-
-  for (const notif of notifications) {
-    await client.execute({
-      sql: `INSERT OR REPLACE INTO notifications (id, userId, title, message, isRead, createdAt) VALUES (?, ?, ?, ?, 0, datetime('now'))`,
-      args: [notif.id, notif.userId, notif.title, notif.message],
-    })
-  }
-  console.log("✅ Created notifications")
-
-  console.log("✅ Database seeded with decreased Focus Room width!")
+  console.log("✅ Database seeded cleanly with no mock bookings!")
 }
 
 main()

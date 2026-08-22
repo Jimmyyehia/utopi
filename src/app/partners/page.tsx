@@ -185,14 +185,6 @@ export default function PartnersPage() {
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1 sm:gap-1.5 text-xs rounded-xl">
-                <Layers className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Floor Plan</span>
-              </Button>
-            </Link>
-          </div>
         </header>
 
         {/* Page Content */}

@@ -15,6 +15,8 @@ export type Team = {
   id: string
   name: string
   description: string | null
+  status?: string
+  isPrivate?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -65,6 +67,7 @@ export type Booking = {
   paymentStatus: PaymentStatus
   priorityScore: number
   rejectionReason: string | null
+  isIncognito?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -105,6 +108,7 @@ export type BookingFormData = {
   startTime: Date
   endTime: Date
   description: string
+  isIncognito?: boolean
 }
 
 export type BookingFormState = {
@@ -147,6 +151,7 @@ export type TooltipData = {
     teamName: string
     description: string
     endTime: string
+    isIncognito?: boolean
   } | null
 } | null
 

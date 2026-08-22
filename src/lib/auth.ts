@@ -41,12 +41,47 @@ export const authOptions: NextAuthOptions = {
         }
 
         const normalizedEmail = credentials.email.toLowerCase().trim()
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
           where: { email: normalizedEmail },
         })
 
         if (!user) {
-          throw new Error("No user found with this email address")
+          // Preset testing accounts fallback mapping
+          const presetUserMap: Record<string, { name: string; systemRole: string; teamId?: string; roleTitle?: string; committee?: string }> = {
+            "tarek@hackerrank-aufs.org": { name: "Tarek Mansour", systemRole: "USER", teamId: "hackerrank-aufs", roleTitle: "Chapter President", committee: "Competitive Coding" },
+            "laila@hackerrank-aufs.org": { name: "Laila Nader", systemRole: "USER", teamId: "hackerrank-aufs", roleTitle: "Lead Problem Setter", committee: "Technical Content" },
+            "karim@phd-case.org": { name: "Karim Zaki", systemRole: "USER", teamId: "phd", roleTitle: "Executive Director", committee: "Leadership" },
+            "youssef@phd-case.org": { name: "Youssef Hassan", systemRole: "USER", teamId: "phd", roleTitle: "Strategy & Case Lead", committee: "Case Competition" },
+            "guest@utopi.space": { name: "Guest User", systemRole: "USER" },
+            "sarah@visitor.space": { name: "Sarah Jenkins", systemRole: "USER" },
+          }
+
+          const presetInfo = presetUserMap[normalizedEmail]
+          if (presetInfo) {
+            user = await prisma.user.create({
+              data: {
+                id: `user-${Date.now()}`,
+                email: normalizedEmail,
+                name: presetInfo.name,
+                provider: "credentials",
+                systemRole: presetInfo.systemRole as any,
+              },
+            })
+
+            if (presetInfo.teamId) {
+              await prisma.userTeamRole.create({
+                data: {
+                  id: `utr-${Date.now()}`,
+                  userId: user.id,
+                  teamId: presetInfo.teamId,
+                  committeeName: presetInfo.committee || null,
+                  customRoleTitle: presetInfo.roleTitle || "Member",
+                },
+              })
+            }
+          } else {
+            throw new Error("No user found with this email address")
+          }
         }
 
         // Verify password with bcrypt or standard test password fallback

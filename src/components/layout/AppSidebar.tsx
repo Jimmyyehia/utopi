@@ -11,6 +11,8 @@ import {
   Calendar,
   Handshake,
   Menu,
+  PanelLeftClose,
+  PanelLeft,
   X,
   Sparkles,
   LogOut,
@@ -72,8 +74,6 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
             href: "/dashboard",
             icon: LayoutDashboard,
             isActive: pathname === "/dashboard",
-            badge: session?.user?.systemRole === "OWNER" ? "Owner" : "Manager",
-            badgeVariant: "manager" as const,
           },
         ]
       : []),
@@ -97,6 +97,16 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
       icon: Calendar,
       isActive: pathname.startsWith("/schedule"),
     },
+    ...(session?.user
+      ? [
+          {
+            label: "My Profile",
+            href: "/profile",
+            icon: UserCheck,
+            isActive: pathname.startsWith("/profile"),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -112,34 +122,45 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
       >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Top Brand Logo */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-            <Link href="/" className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-lg shadow-md flex-shrink-0">
-                U
-              </div>
-              {isDesktopOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex flex-col min-w-0"
+          <div className={cn("h-16 flex items-center border-b border-border px-3.5", isDesktopOpen ? "justify-between" : "justify-center")}>
+            {isDesktopOpen ? (
+              <>
+                <Link href="/" className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-lg shadow-md flex-shrink-0">
+                    U
+                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex flex-col min-w-0"
+                  >
+                    <span className="font-extrabold text-lg text-foreground tracking-tight leading-none">
+                      Utopi
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase mt-0.5">
+                      Workspace
+                    </span>
+                  </motion.div>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDesktopToggle}
+                  title="Collapse Sidebar"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:flex"
                 >
-                  <span className="font-extrabold text-lg text-foreground tracking-tight leading-none">
-                    Utopi
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase mt-0.5">
-                    Workspace
-                  </span>
-                </motion.div>
-              )}
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDesktopToggle}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:flex"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <button
+                onClick={handleDesktopToggle}
+                title="Expand Sidebar"
+                className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-primary-foreground font-black text-lg shadow-md hover:scale-105 transition-transform cursor-pointer"
+              >
+                U
+              </button>
+            )}
           </div>
 
           {/* Navigation Items */}
@@ -167,12 +188,12 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                     <span className={cn(!isDesktopOpen && "hidden")}>{item.label}</span>
                     {item.badge && isDesktopOpen && (
                       <Badge
-                        variant={item.badgeVariant === "manager" ? "outline" : "outline"}
+                        variant="outline"
                         className={cn(
                           "ml-auto text-[10px] py-0 px-1.5 font-bold",
-                          item.badgeVariant === "manager"
-                            ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300"
-                            : "bg-primary/10 text-primary border-primary/30"
+                          item.badgeVariant === "primary"
+                            ? "bg-primary/10 text-primary border-primary/30"
+                            : "bg-muted text-muted-foreground border-border"
                         )}
                       >
                         {item.badge}
@@ -228,14 +249,6 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    onClick={() => setCreateUserModalOpen(true)}
-                    className="cursor-pointer font-medium text-xs py-2"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2 text-primary" />
-                    <span>+ Create User</span>
-                  </DropdownMenuItem>
-
                   {isManager ? (
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="cursor-pointer font-medium text-xs py-2">
@@ -244,12 +257,11 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
                       </Link>
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem
-                      onClick={() => setCreateTeamModalOpen(true)}
-                      className="cursor-pointer font-medium text-xs py-2"
-                    >
-                      <Building2 className="h-4 w-4 mr-2 text-purple-600" />
-                      <span>Request Organization</span>
+                    <DropdownMenuItem asChild>
+                      <Link href="/teams" className="cursor-pointer font-medium text-xs py-2">
+                        <Building2 className="h-4 w-4 mr-2 text-purple-600" />
+                        <span>Request Organization</span>
+                      </Link>
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuGroup>
@@ -264,36 +276,18 @@ export function AppSidebar({ isOpen: controlledIsOpen, onToggle }: AppSidebarPro
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-center gap-2 text-xs font-semibold bg-card hover:bg-muted shadow-xs",
-                    !isDesktopOpen && "p-2"
-                  )}
-                >
-                  <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className={cn(!isDesktopOpen && "hidden")}>Create User / Sign In</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56 p-1.5 shadow-xl">
-                <DropdownMenuItem
-                  onClick={() => setCreateUserModalOpen(true)}
-                  className="cursor-pointer text-xs font-semibold py-2"
-                >
-                  <UserPlus className="h-4 w-4 mr-2 text-primary" />
-                  <span>+ Create User</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/auth/signin" className="cursor-pointer text-xs py-2 font-semibold text-primary">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    <span>Sign In</span>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link href="/auth/signin" className="w-full">
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-center gap-2 text-xs font-semibold bg-card hover:bg-muted shadow-xs",
+                  !isDesktopOpen && "p-2"
+                )}
+              >
+                <LogIn className="h-4 w-4 text-primary flex-shrink-0" />
+                <span className={cn(!isDesktopOpen && "hidden")}>Sign In / Join</span>
+              </Button>
+            </Link>
           )}
         </div>
       </aside>

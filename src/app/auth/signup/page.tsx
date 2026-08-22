@@ -21,14 +21,24 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
+export const WORKSPACE_PRESET_ROLES = [
+  "Founder",
+  "Head",
+  "President",
+  "Project Manager",
+  "Vice Head",
+  "Vice President",
+  "Vice Project Manager",
+]
+
 export const PREDETERMINED_ROLES = [
-  "Member",
-  "Senior Member",
-  "Lead / Coordinator",
-  "Head of Committee",
-  "Director / President",
-  "Founder / Co-Founder",
-  "Guest / Contributor",
+  "Founder",
+  "Head",
+  "President",
+  "Project Manager",
+  "Vice Head",
+  "Vice President",
+  "Vice Project Manager",
 ]
 
 export default function SignUpPage() {
@@ -51,8 +61,8 @@ export default function SignUpPage() {
   const [newTeamName, setNewTeamName] = useState("")
   const [newTeamDescription, setNewTeamDescription] = useState("")
 
-  const [committeeName, setCommitteeName] = useState("Engineering")
-  const [selectedRole, setSelectedRole] = useState<string>("Member")
+  const [committeeName, setCommitteeName] = useState("")
+  const [selectedRole, setSelectedRole] = useState<string>("")
   const [customRoleInput, setCustomRoleInput] = useState<string>("")
 
   const [isLoading, setIsLoading] = useState(false)
@@ -118,6 +128,12 @@ export default function SignUpPage() {
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error || "Failed to create account.")
+      }
+
+      if (data.requiresApproval || accountType === "management") {
+        setSuccessMessage("Management account request submitted! Requires High-Level Authority (Owner) review before management privileges are activated.")
+        setIsLoading(false)
+        return
       }
 
       if (isCustomRole) {
@@ -225,6 +241,16 @@ export default function SignUpPage() {
                 </button>
               </div>
 
+              {/* Management Authority Review Notice */}
+              {accountType === "management" && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-900 dark:text-purple-200 text-xs flex items-start gap-2.5">
+                  <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">High-Level Authority Review Required:</span> Management account creation requests require review and authorization by the Workspace Owner before management access is activated.
+                  </div>
+                </div>
+              )}
+
               {/* Basic Fields */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">Full Name *</Label>
@@ -279,13 +305,12 @@ export default function SignUpPage() {
                     <Label className="text-xs font-semibold text-muted-foreground">
                       Organization (Optional)
                     </Label>
-                    <button
-                      type="button"
-                      onClick={() => setIsCreatingNewTeam(!isCreatingNewTeam)}
-                      className="text-[11px] font-semibold text-primary hover:underline"
+                    <Link
+                      href="/teams?action=create"
+                      className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
                     >
-                      {isCreatingNewTeam ? "← Select Existing" : "+ Create New Team"}
-                    </button>
+                      <span>+ Request New Team (Teams Section) →</span>
+                    </Link>
                   </div>
 
                   {isCreatingNewTeam ? (
@@ -310,7 +335,7 @@ export default function SignUpPage() {
                       onChange={(e) => setSelectedTeamId(e.target.value)}
                       className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                     >
-                      <option value="">-- None (Independent / Not assigned to a team) --</option>
+                      <option value="" disabled>Select an Organization</option>
                       {teams.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name}
@@ -340,12 +365,13 @@ export default function SignUpPage() {
                             onChange={(e) => setSelectedRole(e.target.value)}
                             className="w-full h-9 rounded-xl border border-input bg-background px-2.5 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
                           >
+                            <option value="" disabled>Select a Role Title</option>
                             {PREDETERMINED_ROLES.map((role) => (
                               <option key={role} value={role}>
                                 {role}
                               </option>
                             ))}
-                            <option value="__custom__">+ Custom Role (Pending Approval)</option>
+                            <option value="__custom__">+ Custom Role (Pending)</option>
                           </select>
                         </div>
                       </div>

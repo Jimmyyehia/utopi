@@ -65,28 +65,18 @@ export function generateBookingReference(): string {
   return result
 }
 
-export function calculatePriorityScore(roleTitle: string): number {
-  const roleHierarchy: Record<string, number> = {
-    owner: 100,
-    founder: 100,
-    head: 100,
-    director: 95,
-    lead: 90,
-    manager: 85,
-    senior: 70,
-    coordinator: 60,
-    guest: 10,
-    intern: 5,
-    member: 40,
-  }
+export const WORKSPACE_PRESET_ROLES = [
+  "Founder",
+  "Head",
+  "President",
+  "Project Manager",
+  "Vice Head",
+  "Vice President",
+  "Vice Project Manager",
+] as const
 
-  const lowerRole = roleTitle.toLowerCase()
-  for (const [key, value] of Object.entries(roleHierarchy)) {
-    if (lowerRole.includes(key)) {
-      return value
-    }
-  }
-  return 30
+export function calculatePriorityScore(_roleTitle: string): number {
+  return 0
 }
 
 export function getStatusColor(status: string): string {
@@ -274,4 +264,68 @@ export function getRoomStatusAtTime(
   if (activeBooking.status === "APPROVED") return "occupied"
   if (activeBooking.status === "PENDING") return "pending"
   return "maintenance"
+}
+
+export function getCombinedRoleTitle(customRoleTitle: string, committeeName?: string | null): string {
+  if (!customRoleTitle) return "Member"
+  const trimmedRole = customRoleTitle.trim()
+  if (!committeeName || !committeeName.trim()) return trimmedRole
+  const trimmedCommittee = committeeName.trim()
+
+  if (trimmedRole.toLowerCase().startsWith(trimmedCommittee.toLowerCase())) {
+    return trimmedRole
+  }
+  return `${trimmedCommittee} ${trimmedRole}`
+}
+
+export interface GroupedTeamMember {
+  userId: string
+  userName: string
+  userEmail: string
+  userImage?: string | null
+  roles: Array<{
+    id?: string
+    committeeName?: string | null
+    customRoleTitle: string
+    combinedTitle: string
+  }>
+}
+
+export function groupTeamMembers(members: any[]): GroupedTeamMember[] {
+  if (!Array.isArray(members)) return []
+
+  const userMap = new Map<string, GroupedTeamMember>()
+
+  for (const m of members) {
+    const userId = m.userId || m.user?.id || m.userEmail || m.id || "u-dyn"
+    const userName = m.user?.name || m.userName || "Member"
+    const userEmail = m.user?.email || m.userEmail || ""
+    const userImage = m.user?.image || m.userImage || null
+    const customRole = m.customRoleTitle || "Member"
+    const committee = m.committeeName || null
+    const combinedTitle = getCombinedRoleTitle(customRole, committee)
+
+    if (!userMap.has(userId)) {
+      userMap.set(userId, {
+        userId,
+        userName,
+        userEmail,
+        userImage,
+        roles: [],
+      })
+    }
+
+    const entry = userMap.get(userId)!
+    // Avoid duplicate role entries if any
+    if (!entry.roles.some((r) => r.combinedTitle === combinedTitle)) {
+      entry.roles.push({
+        id: m.id,
+        committeeName: committee,
+        customRoleTitle: customRole,
+        combinedTitle,
+      })
+    }
+  }
+
+  return Array.from(userMap.values()).sort((a, b) => a.userName.localeCompare(b.userName))
 }

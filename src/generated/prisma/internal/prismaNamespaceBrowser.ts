@@ -78,6 +78,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   emailVerified: 'emailVerified',
   image: 'image',
+  bannerImage: 'bannerImage',
   password: 'password',
   provider: 'provider',
   systemRole: 'systemRole',
@@ -94,6 +95,7 @@ export const TeamScalarFieldEnum = {
   description: 'description',
   status: 'status',
   requestedBy: 'requestedBy',
+  isPrivate: 'isPrivate',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -107,6 +109,7 @@ export const UserTeamRoleScalarFieldEnum = {
   teamId: 'teamId',
   committeeName: 'committeeName',
   customRoleTitle: 'customRoleTitle',
+  status: 'status',
   createdAt: 'createdAt'
 } as const
 
@@ -148,6 +151,7 @@ export const BookingScalarFieldEnum = {
   paymentStatus: 'paymentStatus',
   priorityScore: 'priorityScore',
   rejectionReason: 'rejectionReason',
+  isIncognito: 'isIncognito',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

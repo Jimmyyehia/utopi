@@ -10,6 +10,7 @@
 */
 
 export const SystemRole = {
+  GUEST: 'GUEST',
   USER: 'USER',
   WORKSPACE_MANAGER: 'WORKSPACE_MANAGER',
   ADMIN: 'ADMIN',

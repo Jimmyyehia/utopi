@@ -14,6 +14,16 @@ export async function GET(request: NextRequest) {
       session?.user?.systemRole === "ADMIN" ||
       session?.user?.systemRole === "OWNER"
 
+    // Get current logged-in user
+    const dbUser = session?.user?.email
+      ? await prisma.user.findUnique({
+          where: { email: session.user.email },
+          include: { teamRoles: true },
+        })
+      : null
+
+    const userTeamIds = new Set(dbUser?.teamRoles.map((r) => r.teamId) || [])
+
     // If manager requests all teams or pending queue
     if (isManager && statusFilter) {
       const teams = await prisma.team.findMany({
@@ -21,56 +31,61 @@ export async function GET(request: NextRequest) {
         include: {
           members: {
             include: { user: true },
+            orderBy: [{ customRoleTitle: "asc" }],
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { name: "asc" },
       })
       return NextResponse.json(teams)
     }
 
-    if (!session?.user?.email) {
-      // Unauthenticated public view: list approved teams only
-      const approvedTeams = await prisma.team.findMany({
-        where: { status: "APPROVED" },
-        include: {
-          members: {
-            include: { user: true },
-          },
-        },
-      })
-      return NextResponse.json(approvedTeams)
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Fetch all approved teams arranged alphabetically
+    const allApprovedTeams = await prisma.team.findMany({
+      where: { status: "APPROVED" },
       include: {
-        teamRoles: {
-          include: { team: true },
+        members: {
+          include: { user: true },
+          orderBy: [{ customRoleTitle: "asc" }],
         },
       },
+      orderBy: { name: "asc" },
     })
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
+    // Filter and sanitize teams
+    const sanitizedTeams = allApprovedTeams
+      .filter((team) => {
+        // Private teams are visible ONLY to team members and Workspace Management
+        if (team.isPrivate && !isManager && !userTeamIds.has(team.id)) {
+          return false
+        }
+        return true
+      })
+      .map((team) => {
+        const isUserMember = userTeamIds.has(team.id) || isManager
+        const sortedMembers = [...team.members].sort((a, b) =>
+          (a.user?.name || "").localeCompare(b.user?.name || "")
+        )
+        return {
+          id: team.id,
+          name: team.name,
+          description: team.description,
+          status: team.status,
+          isPrivate: Boolean(team.isPrivate),
+          requestedBy: team.requestedBy,
+          createdAt: team.createdAt,
+          updatedAt: team.updatedAt,
+          isMember: isUserMember,
+          // Detailed member list AND total member count are visible ONLY to team members & managers
+          members: isUserMember ? sortedMembers : [],
+          memberCount: isUserMember ? team.members.length : null,
+          userRole: isUserMember
+            ? dbUser?.teamRoles.find((r) => r.teamId === team.id)?.customRoleTitle || "Member"
+            : null,
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
 
-    // Return teams user belongs to with full team object and flat properties
-    const teams = user.teamRoles.map((tr) => ({
-      id: tr.team.id,
-      name: tr.team.name,
-      description: tr.team.description,
-      status: tr.team.status,
-      requestedBy: tr.team.requestedBy,
-      createdAt: tr.team.createdAt,
-      updatedAt: tr.team.updatedAt,
-      team: tr.team,
-      userRole: tr.customRoleTitle,
-      customRoleTitle: tr.customRoleTitle,
-      committeeName: tr.committeeName,
-      userTeamRoleId: tr.id,
-    }))
-
-    return NextResponse.json(teams)
+    return NextResponse.json(sanitizedTeams)
   } catch (error) {
     console.error("Error fetching teams:", error)
     return NextResponse.json({ error: "Failed to fetch teams" }, { status: 500 })
@@ -85,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, committeeName, customRoleTitle, otherRoles } = body
+    const { name, description, committeeName, customRoleTitle, otherRoles, isPrivate } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: "Team name is required." }, { status: 400 })
@@ -118,39 +133,42 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         description: combinedDescription || null,
         status: teamStatus,
+        isPrivate: Boolean(isPrivate),
         requestedBy: session.user.email,
       },
     })
 
-    // Get requesting user ID
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (user) {
-      // Connect user to the team with their role title
-      await prisma.userTeamRole.create({
-        data: {
-          id: `utr-${Date.now()}`,
-          userId: user.id,
-          teamId: team.id,
-          committeeName: committeeName?.trim() || null,
-          customRoleTitle: customRoleTitle?.trim() || "Founder / Lead",
-        },
+    // For regular tenant users, connect requesting user to the team with their role title.
+    // Workspace Management users create organizations for the workspace without being assigned as tenant members.
+    if (!isManager) {
+      const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+      if (user) {
+        await prisma.userTeamRole.create({
+          data: {
+            id: `utr-${Date.now()}`,
+            userId: user.id,
+            teamId: team.id,
+            committeeName: committeeName?.trim() || null,
+            customRoleTitle: customRoleTitle?.trim() || "Founder / Lead",
+          },
+        })
+      }
+    }
+
+    // Notify managers if pending approval
+    if (teamStatus === "PENDING") {
+      const managers = await prisma.user.findMany({
+        where: { systemRole: { in: ["WORKSPACE_MANAGER", "ADMIN", "OWNER"] } },
       })
 
-      // Notify managers if pending approval
-      if (teamStatus === "PENDING") {
-        const managers = await prisma.user.findMany({
-          where: { systemRole: { in: ["WORKSPACE_MANAGER", "ADMIN", "OWNER"] } },
+      for (const manager of managers) {
+        await prisma.notification.create({
+          data: {
+            userId: manager.id,
+            title: "New Team Creation Request",
+            message: `${session.user.name || session.user.email} submitted a request to create organization "${team.name}".`,
+          },
         })
-
-        for (const manager of managers) {
-          await prisma.notification.create({
-            data: {
-              userId: manager.id,
-              title: "New Team Creation Request",
-              message: `${session.user.name || session.user.email} submitted a request to create organization "${team.name}".`,
-            },
-          })
-        }
       }
     }
 

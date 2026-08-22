@@ -66,56 +66,48 @@ export async function PUT(
     if (requesterUser) {
       if (status === "APPROVED") {
         // Send In-App Notification
-        await prisma.notification.create({
+        prisma.notification.create({
           data: {
             userId: requesterUser.id,
             title: "Team Approved! 🎉",
             message: `Your request to establish organization "${updatedTeam.name}" has been approved. You can now book workspace facilities!`,
           },
-        })
+        }).catch((e) => console.error("Notification create error:", e))
 
-        // Send Email Notification to the Requester
-        try {
-          const emailContent = generateTeamApprovedEmail({
-            userName: requesterUser.name || requesterUser.email,
-            teamName: updatedTeam.name,
-            approvedBy: session.user.name || "Workspace Management",
-          })
-          await sendEmail({
-            to: requesterUser.email,
-            subject: emailContent.subject,
-            html: emailContent.html,
-            text: emailContent.text,
-          })
-        } catch (emailErr) {
-          console.error("Failed to send team approved email:", emailErr)
-        }
+        // Send Email Notification asynchronously
+        const emailContent = generateTeamApprovedEmail({
+          userName: requesterUser.name || requesterUser.email,
+          teamName: updatedTeam.name,
+          approvedBy: session.user.name || "Workspace Management",
+        })
+        sendEmail({
+          to: requesterUser.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
+        }).catch((e) => console.error("Email error:", e))
       } else if (status === "REJECTED") {
         // Send In-App Notification
-        await prisma.notification.create({
+        prisma.notification.create({
           data: {
             userId: requesterUser.id,
             title: "Team Request Declined",
             message: `Your request for team "${updatedTeam.name}" was declined. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`,
           },
-        })
+        }).catch((e) => console.error("Notification create error:", e))
 
-        // Send Email Notification to the Requester
-        try {
-          const emailContent = generateTeamRejectedEmail({
-            userName: requesterUser.name || requesterUser.email,
-            teamName: updatedTeam.name,
-            reason: rejectionReason || "Does not meet workspace tenant criteria.",
-          })
-          await sendEmail({
-            to: requesterUser.email,
-            subject: emailContent.subject,
-            html: emailContent.html,
-            text: emailContent.text,
-          })
-        } catch (emailErr) {
-          console.error("Failed to send team rejection email:", emailErr)
-        }
+        // Send Email Notification asynchronously
+        const emailContent = generateTeamRejectedEmail({
+          userName: requesterUser.name || requesterUser.email,
+          teamName: updatedTeam.name,
+          reason: rejectionReason || "Does not meet workspace tenant criteria.",
+        })
+        sendEmail({
+          to: requesterUser.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
+        }).catch((e) => console.error("Email error:", e))
       }
     }
 
@@ -125,6 +117,8 @@ export async function PUT(
     return NextResponse.json({ error: "Failed to update team request" }, { status: 500 })
   }
 }
+
+export { PUT as PATCH }
 
 export async function DELETE(
   request: NextRequest,

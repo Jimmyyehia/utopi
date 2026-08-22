@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   UserCheck,
+  Lock,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -34,9 +35,10 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [committeeName, setCommitteeName] = useState("Leadership & Strategy")
-  const [customRoleTitle, setCustomRoleTitle] = useState("Founder / Lead")
+  const [committeeName, setCommitteeName] = useState("")
+  const [customRoleTitle, setCustomRoleTitle] = useState("President")
   const [otherRoles, setOtherRoles] = useState("")
+  const [isPrivate, setIsPrivate] = useState(false)
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -64,6 +66,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
           committeeName: committeeName.trim() || undefined,
           customRoleTitle: customRoleTitle.trim() || "Founder / Lead",
           otherRoles: otherRoles.trim() || undefined,
+          isPrivate,
         }),
       })
 
@@ -87,6 +90,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
         setName("")
         setDescription("")
         setOtherRoles("")
+        setIsPrivate(false)
       }, 1500)
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to create organization.")
@@ -159,7 +163,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
                   </div>
                 </div>
                 <Badge variant="outline" className="text-[9px] font-bold text-primary border-primary/30 flex-shrink-0">
-                  Requesting User
+                  {isManager ? "Workspace Authority" : "Requesting User"}
                 </Badge>
               </div>
             )}
@@ -197,42 +201,73 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Your Committee</Label>
-                <Input
-                  placeholder="e.g. Executive Board"
-                  value={committeeName}
-                  onChange={(e) => setCommitteeName(e.target.value)}
-                  className="h-9 text-xs"
-                />
-              </div>
+            {/* Show committee and role options ONLY for regular users requesting to join/found a team */}
+            {!isManager && (
+              <>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Your Committee</Label>
+                    <Input
+                      placeholder="e.g. Executive Board"
+                      value={committeeName}
+                      onChange={(e) => setCommitteeName(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Your Requested Role</Label>
-                <Input
-                  placeholder="e.g. Founder, Head"
-                  value={customRoleTitle}
-                  onChange={(e) => setCustomRoleTitle(e.target.value)}
-                  className="h-9 text-xs"
-                  required
-                />
-              </div>
-            </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Your Requested Role</Label>
+                    <select
+                      value={customRoleTitle}
+                      onChange={(e) => setCustomRoleTitle(e.target.value)}
+                      className="w-full h-9 text-xs rounded-xl border border-input bg-background px-3 py-1 font-medium shadow-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="Founder">Founder</option>
+                      <option value="Head">Head</option>
+                      <option value="President">President</option>
+                      <option value="Project Manager">Project Manager</option>
+                      <option value="Vice Head">Vice Head</option>
+                      <option value="Vice President">Vice President</option>
+                      <option value="Vice Project Manager">Vice Project Manager</option>
+                    </select>
+                  </div>
+                </div>
 
-            <div className="space-y-1.5 pt-1">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Other Roles in This Organization
-              </Label>
-              <Input
-                placeholder="e.g. Co-Founder, Tech Lead, PR Director, Designer"
-                value={otherRoles}
-                onChange={(e) => setOtherRoles(e.target.value)}
-                className="h-9 text-xs"
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Other Roles in This Organization
+                  </Label>
+                  <Input
+                    placeholder="e.g. Co-Founder, Tech Lead, PR Director, Designer"
+                    value={otherRoles}
+                    onChange={(e) => setOtherRoles(e.target.value)}
+                    className="h-9 text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Optional: List other member titles that will be part of this team.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Private Organization Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-purple-500/5 border border-purple-500/20">
+              <div className="space-y-0.5 pr-2">
+                <Label htmlFor="private-toggle" className="text-xs font-bold text-foreground cursor-pointer flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 text-purple-600" />
+                  Private Organization
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Hide from public directory. Visible only to team members and workspace management.
+                </p>
+              </div>
+              <input
+                id="private-toggle"
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="h-4 w-4 rounded border-purple-400 text-purple-600 focus:ring-purple-500 cursor-pointer flex-shrink-0"
               />
-              <p className="text-[10px] text-muted-foreground">
-                Optional: List other member titles that will be part of this team.
-              </p>
             </div>
 
             {!isManager && (

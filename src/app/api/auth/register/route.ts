@@ -78,6 +78,11 @@ export async function POST(request: NextRequest) {
       targetTeamId = createdTeam.id
     }
 
+    // Check if management account is requested
+    const isManagementRequested = systemRole === "WORKSPACE_MANAGER" || systemRole === "ADMIN" || systemRole === "OWNER"
+    // Management account requests require High-Level Authority (Owner) review & approval
+    const assignedSystemRole = isManagementRequested ? "USER" : systemRole
+
     // Create user in database
     const userId = `user-${Date.now()}`
     const newUser = await prisma.user.create({
@@ -86,13 +91,13 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         email: normalizedEmail,
         password: hashedPassword,
-        systemRole: systemRole as any,
+        systemRole: assignedSystemRole as any,
         provider: "credentials",
       },
     })
 
     // If member has a team, create the UserTeamRole mapping
-    if (targetTeamId && systemRole === "USER") {
+    if (targetTeamId && assignedSystemRole === "USER") {
       await prisma.userTeamRole.create({
         data: {
           id: `utr-${Date.now()}`,
@@ -102,6 +107,23 @@ export async function POST(request: NextRequest) {
           customRoleTitle: customRoleTitle?.trim() || "Member",
         },
       })
+    }
+
+    // High-Level Authority Notification for Management Account Requests
+    if (isManagementRequested) {
+      const owners = await prisma.user.findMany({
+        where: { systemRole: "OWNER" },
+      })
+
+      for (const owner of owners) {
+        await prisma.notification.create({
+          data: {
+            userId: owner.id,
+            title: "Management Access Request (High-Level Review)",
+            message: `User ${newUser.name || newUser.email} requested ${systemRole} privileges. High-level authority (Owner) review required for approval.`,
+          },
+        })
+      }
     }
 
     // If a new team was requested, notify workspace managers
@@ -137,7 +159,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "Account created successfully!",
+        message: isManagementRequested
+          ? "Management account creation request submitted! High-level authority (Owner) review is required before management privileges are activated."
+          : "Account created successfully!",
+        requiresApproval: isManagementRequested,
         user: {
           id: newUser.id,
           name: newUser.name,

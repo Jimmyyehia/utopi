@@ -351,11 +351,6 @@ export function PersonaSwitcherModal({ isOpen, onClose }: PersonaSwitcherModalPr
                                     <span className="font-medium text-foreground">
                                       {role.title} {role.committee ? `(${role.committee})` : ""}
                                     </span>
-                                    {role.priorityScore !== undefined && (
-                                      <span className="font-bold text-primary text-[11px]">
-                                        Score: {role.priorityScore}
-                                      </span>
-                                    )}
                                   </div>
                                 ))
                               )}

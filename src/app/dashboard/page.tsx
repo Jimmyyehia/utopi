@@ -23,6 +23,7 @@ import {
 import Link from "next/link"
 import { useSession, signIn } from "next-auth/react"
 import { AppSidebar } from "@/components/layout/AppSidebar"
+import { TeamsModal } from "@/components/teams/TeamsModal"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SiteNotificationModal, type NotificationState } from "@/components/ui/SiteNotificationModal"
 import { cn, formatTime, formatDate } from "@/lib/utils"
 import type { BookingWithRelations } from "@/types"
 
@@ -59,6 +61,7 @@ export default function ApprovalDashboard() {
   const { data: session, status: authStatus } = useSession()
   const [queue, setQueue] = useState<ApprovalQueueItem[]>([])
   const [pendingTeams, setPendingTeams] = useState<any[]>([])
+  const [pendingCustomRoles, setPendingCustomRoles] = useState<any[]>([])
   const [teamActionLoading, setTeamActionLoading] = useState<string | null>(null)
   const [rejectingTeam, setRejectingTeam] = useState<any | null>(null)
   const [teamRejectionReason, setTeamRejectionReason] = useState("")
@@ -68,11 +71,13 @@ export default function ApprovalDashboard() {
     totalBookingsToday: 0,
     pendingApprovals: 0,
     pendingTeamsCount: 0,
+    pendingCustomRolesCount: 0,
     occupiedRooms: 0,
     revenueToday: 0,
   })
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "conflicts" | "high-priority">("all")
+  const [activeTab, setActiveTab] = useState<"bookings" | "teams" | "roles">("bookings")
+  const [filter, setFilter] = useState<"all" | "conflicts">("all")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -90,15 +95,16 @@ export default function ApprovalDashboard() {
     session?.user?.systemRole === "ADMIN" ||
     session?.user?.systemRole === "OWNER"
 
-  const fetchDashboardData = async () => {
-    setLoading(true)
+  const fetchDashboardData = async (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true)
     try {
       const res = await fetch(`/api/dashboard?date=${selectedDate}`)
       if (res.ok) {
         const data = await res.json()
         setQueue(data.approvalQueue || [])
         setPendingTeams(data.pendingTeams || [])
-        setStats(data.stats || { totalRooms: 0, totalBookingsToday: 0, pendingApprovals: 0, pendingTeamsCount: 0, occupiedRooms: 0, revenueToday: 0 })
+        setPendingCustomRoles(data.pendingCustomRoles || [])
+        setStats(data.stats || { totalRooms: 0, totalBookingsToday: 0, pendingApprovals: 0, pendingTeamsCount: 0, pendingCustomRolesCount: 0, occupiedRooms: 0, revenueToday: 0 })
       }
     } catch (error) {
       console.error("Failed to fetch dashboard:", error)
@@ -108,12 +114,35 @@ export default function ApprovalDashboard() {
   }
 
   useEffect(() => {
-    if (authStatus === "authenticated") {
-      fetchDashboardData()
+    if (authStatus !== "unauthenticated") {
+      fetchDashboardData(queue.length === 0)
     } else {
       setLoading(false)
     }
   }, [selectedDate, authStatus])
+
+  const [notification, setNotification] = useState<NotificationState | null>(null)
+
+  const handleUpdateRoleStatus = async (roleId: string, status: "APPROVED" | "REJECTED") => {
+    setTeamActionLoading(roleId)
+    try {
+      const res = await fetch(`/api/profile/roles/${roleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) {
+        fetchDashboardData(false)
+      } else {
+        setNotification({ isOpen: true, title: "Action Failed", message: `Failed to ${status.toLowerCase()} custom role.`, type: "error" })
+      }
+    } catch (err) {
+      console.error("Error updating custom role:", err)
+      setNotification({ isOpen: true, title: "Error", message: "Error updating custom role.", type: "error" })
+    } finally {
+      setTeamActionLoading(null)
+    }
+  }
 
   const handleApproveTeam = async (teamId: string) => {
     setTeamActionLoading(teamId)
@@ -126,11 +155,11 @@ export default function ApprovalDashboard() {
       if (res.ok) {
         fetchDashboardData()
       } else {
-        alert("Failed to approve team request.")
+        setNotification({ isOpen: true, title: "Approval Failed", message: "Failed to approve team request.", type: "error" })
       }
     } catch (error) {
       console.error("Error approving team:", error)
-      alert("Error approving team request.")
+      setNotification({ isOpen: true, title: "Error", message: "Error approving team request.", type: "error" })
     } finally {
       setTeamActionLoading(null)
     }
@@ -150,11 +179,11 @@ export default function ApprovalDashboard() {
         setTeamRejectionReason("")
         fetchDashboardData()
       } else {
-        alert("Failed to decline team request.")
+        setNotification({ isOpen: true, title: "Decline Failed", message: "Failed to decline team request.", type: "error" })
       }
     } catch (error) {
       console.error("Error declining team:", error)
-      alert("Error declining team request.")
+      setNotification({ isOpen: true, title: "Error", message: "Error declining team request.", type: "error" })
     } finally {
       setTeamActionLoading(null)
     }
@@ -170,11 +199,11 @@ export default function ApprovalDashboard() {
       if (res.ok) {
         fetchDashboardData()
       } else {
-        alert("Failed to approve booking.")
+        setNotification({ isOpen: true, title: "Approval Failed", message: "Failed to approve booking.", type: "error" })
       }
     } catch (error) {
       console.error("Error approving:", error)
-      alert("Error approving booking.")
+      setNotification({ isOpen: true, title: "Error", message: "Error approving booking.", type: "error" })
     }
   }
 
@@ -192,11 +221,11 @@ export default function ApprovalDashboard() {
         setRejectionReason("")
         fetchDashboardData()
       } else {
-        alert("Failed to reject booking.")
+        setNotification({ isOpen: true, title: "Rejection Failed", message: "Failed to reject booking.", type: "error" })
       }
     } catch (error) {
       console.error("Error rejecting:", error)
-      alert("Error rejecting booking.")
+      setNotification({ isOpen: true, title: "Error", message: "Error rejecting booking.", type: "error" })
     } finally {
       setIsSubmittingAction(false)
     }
@@ -220,11 +249,11 @@ export default function ApprovalDashboard() {
         setRescheduleEnd("")
         fetchDashboardData()
       } else {
-        alert("Failed to reschedule booking.")
+        setNotification({ isOpen: true, title: "Reschedule Failed", message: "Failed to reschedule booking.", type: "error" })
       }
     } catch (error) {
       console.error("Error rescheduling:", error)
-      alert("Error rescheduling booking.")
+      setNotification({ isOpen: true, title: "Error", message: "Error rescheduling booking.", type: "error" })
     } finally {
       setIsSubmittingAction(false)
     }
@@ -239,17 +268,16 @@ export default function ApprovalDashboard() {
       if (res.ok) {
         fetchDashboardData()
       } else {
-        alert("Failed to unbook reservation.")
+        setNotification({ isOpen: true, title: "Unbook Failed", message: "Failed to unbook reservation.", type: "error" })
       }
     } catch (error) {
       console.error("Error unbooking:", error)
-      alert("Error unbooking reservation.")
+      setNotification({ isOpen: true, title: "Error", message: "Error unbooking reservation.", type: "error" })
     }
   }
 
   const filteredQueue = queue.filter((item) => {
     if (filter === "conflicts") return item.hasConflict
-    if (filter === "high-priority") return item.priorityScore >= 80
     return true
   })
 
@@ -329,7 +357,7 @@ export default function ApprovalDashboard() {
               <Button variant="outline" size="sm" className="text-xs font-medium gap-1.5">
                 <Filter className="h-3.5 w-3.5" />
                 <span>
-                  {filter === "all" ? "All Requests" : filter === "conflicts" ? "Conflicts Only" : "High Priority (≥80)"}
+                  {filter === "all" ? "All Requests" : "Conflicts Only"}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </Button>
@@ -339,7 +367,6 @@ export default function ApprovalDashboard() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setFilter("all")}>All Requests</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilter("conflicts")}>Conflicts Only</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter("high-priority")}>High Priority (≥80)</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -361,23 +388,6 @@ export default function ApprovalDashboard() {
                 </div>
               </div>
             )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setTeamsModalOpen(true)}
-            className="text-xs gap-1.5"
-          >
-            <Users className="h-3.5 w-3.5" />
-            <span>Teams</span>
-          </Button>
-
-          <Link href="/">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5">
-              <Layers className="h-3.5 w-3.5 text-primary" />
-              <span>Floor Plan</span>
-            </Button>
-          </Link>
         </div>
       </header>
 
@@ -430,8 +440,59 @@ export default function ApprovalDashboard() {
           </Card>
         </div>
 
-        {/* Pending Team Creation Requests Section */}
-        {pendingTeams.length > 0 && (
+        {/* Approval Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-border pb-3 flex-wrap">
+          <Button
+            variant={activeTab === "bookings" ? "primary" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("bookings")}
+            className={cn(
+              "text-xs font-bold gap-2 rounded-xl transition-all h-9 px-4",
+              activeTab === "bookings" ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Room Reservation Requests</span>
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-extrabold", activeTab === "bookings" ? "bg-white/20 text-white border-white/30" : "bg-primary/10 text-primary border-primary/20")}>
+              {stats.pendingApprovals}
+            </Badge>
+          </Button>
+
+          <Button
+            variant={activeTab === "teams" ? "primary" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("teams")}
+            className={cn(
+              "text-xs font-bold gap-2 rounded-xl transition-all h-9 px-4",
+              activeTab === "teams" ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            <span>Team & Organization Requests</span>
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-extrabold", activeTab === "teams" ? "bg-white/20 text-white border-white/30" : "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-400")}>
+              {pendingTeams.length}
+            </Badge>
+          </Button>
+
+          <Button
+            variant={activeTab === "roles" ? "primary" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("roles")}
+            className={cn(
+              "text-xs font-bold gap-2 rounded-xl transition-all h-9 px-4",
+              activeTab === "roles" ? "bg-amber-600 hover:bg-amber-700 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <UserCheck className="h-4 w-4" />
+            <span>Custom Role Requests</span>
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-extrabold", activeTab === "roles" ? "bg-white/20 text-white border-white/30" : "bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/30")}>
+              {pendingCustomRoles.length}
+            </Badge>
+          </Button>
+        </div>
+
+        {/* TAB 2: Pending Team Creation Requests */}
+        {activeTab === "teams" && (
           <Card className="border-purple-300 dark:border-purple-800 shadow-md bg-purple-500/5 overflow-hidden">
             <CardHeader className="p-5 border-b border-purple-200 dark:border-purple-800/60 bg-purple-500/10 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
@@ -447,11 +508,22 @@ export default function ApprovalDashboard() {
                   </CardDescription>
                 </div>
               </div>
+            {pendingTeams.length > 0 && (
               <Badge className="bg-purple-600 text-white text-xs font-bold px-2.5 py-0.5">
                 Action Required
               </Badge>
-            </CardHeader>
-            <CardContent className="p-0">
+            )}
+          </CardHeader>
+          <CardContent className="p-0">
+            {pendingTeams.length === 0 ? (
+              <div className="text-center py-16 p-4">
+                <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-3 opacity-80" />
+                <h3 className="text-base font-bold text-foreground">No Pending Organization Requests</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                  All team and organization creation requests have been reviewed and processed.
+                </p>
+              </div>
+            ) : (
               <div className="divide-y divide-border">
                 {pendingTeams.map((team) => {
                   const requesterName = team.members?.[0]?.user?.name || team.requestedBy || "Workspace User"
@@ -510,12 +582,93 @@ export default function ApprovalDashboard() {
                   )
                 })}
               </div>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
+        {/* TAB 3: Pending Custom Role Requests */}
+        {activeTab === "roles" && (
+          <Card className="border-amber-300 dark:border-amber-800 shadow-md bg-amber-500/5 overflow-hidden">
+            <CardHeader className="p-5 border-b border-amber-200 dark:border-amber-800/60 bg-amber-500/10 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                    Custom Role Requests ({pendingCustomRoles.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    User custom role titles pending workspace manager authorization.
+                  </CardDescription>
+                </div>
+              </div>
+              {pendingCustomRoles.length > 0 && (
+                <Badge className="bg-amber-600 text-white text-xs font-bold px-2.5 py-0.5">
+                  Review Required
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent className="p-0">
+              {pendingCustomRoles.length === 0 ? (
+                <div className="text-center py-16 p-4">
+                  <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-3 opacity-80" />
+                  <h3 className="text-base font-bold text-foreground">No Pending Role Requests</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                    All user custom role submissions have been authorized.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {pendingCustomRoles.map((role) => (
+                    <div key={role.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-foreground text-sm">{role.customRoleTitle}</span>
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-200 border-amber-500/30 text-xs font-bold">
+                            {role.team?.name || "Independent"}
+                          </Badge>
+                          {role.committeeName && (
+                            <span className="text-xs text-muted-foreground">Committee: {role.committeeName}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Requested by <strong>{role.user?.name || role.user?.email}</strong> ({role.user?.email})
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdateRoleStatus(role.id, "APPROVED")}
+                          disabled={teamActionLoading === role.id}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 rounded-xl shadow-xs"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          Approve Role
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdateRoleStatus(role.id, "REJECTED")}
+                          disabled={teamActionLoading === role.id}
+                          className="text-xs font-bold text-destructive hover:bg-destructive/10 border-destructive/30 rounded-xl"
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1" />
+                          Refuse
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Approval Queue Section */}
-        <Card className="border-border shadow-md">
+        {/* TAB 1: Room Reservation Requests (Default Tab) */}
+        {activeTab === "bookings" && (
+          <Card className="border-border shadow-md">
           <CardHeader className="p-5 border-b border-border bg-muted/20 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg font-bold text-foreground">
@@ -666,6 +819,7 @@ export default function ApprovalDashboard() {
             )}
           </CardContent>
         </Card>
+        )}
       </main>
 
       {/* Team Rejection Dialog */}
@@ -795,6 +949,10 @@ export default function ApprovalDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Teams Modal */}
+      <TeamsModal isOpen={teamsModalOpen} onClose={() => setTeamsModalOpen(false)} />
+
+      <SiteNotificationModal notification={notification} onClose={() => setNotification(null)} />
       </main>
     </div>
   )
