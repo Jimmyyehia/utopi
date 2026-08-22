@@ -14,13 +14,30 @@ export async function GET(request: NextRequest) {
       session?.user?.systemRole === "ADMIN" ||
       session?.user?.systemRole === "OWNER"
 
-    // Get current logged-in user
-    const dbUser = session?.user?.email
-      ? await prisma.user.findUnique({
+    // Run logged-in user lookup and teams lookup concurrently in parallel
+    const dbUserPromise = session?.user?.email
+      ? prisma.user.findUnique({
           where: { email: session.user.email },
           include: { teamRoles: true },
         })
-      : null
+      : Promise.resolve(null)
+
+    const allApprovedTeamsPromise = (isManager && statusFilter)
+      ? Promise.resolve([])
+      : prisma.team.findMany({
+          where: {
+            NOT: { status: "REJECTED" },
+          },
+          include: {
+            members: {
+              include: { user: true },
+              orderBy: [{ customRoleTitle: "asc" }],
+            },
+          },
+          orderBy: { name: "asc" },
+        })
+
+    const [dbUser, allApprovedTeams] = await Promise.all([dbUserPromise, allApprovedTeamsPromise])
 
     const userTeamIds = new Set(dbUser?.teamRoles.map((r) => r.teamId) || [])
 
@@ -36,22 +53,10 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { name: "asc" },
       })
-      return NextResponse.json(teams)
+      return NextResponse.json(teams, {
+        headers: { "Cache-Control": "s-maxage=5, stale-while-revalidate=59" },
+      })
     }
-
-    // Fetch all approved/active teams arranged alphabetically
-    const allApprovedTeams = await prisma.team.findMany({
-      where: {
-        NOT: { status: "REJECTED" },
-      },
-      include: {
-        members: {
-          include: { user: true },
-          orderBy: [{ customRoleTitle: "asc" }],
-        },
-      },
-      orderBy: { name: "asc" },
-    })
 
     // Filter and sanitize teams
     const sanitizedTeams = allApprovedTeams
@@ -87,7 +92,9 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    return NextResponse.json(sanitizedTeams)
+    return NextResponse.json(sanitizedTeams, {
+      headers: { "Cache-Control": "s-maxage=5, stale-while-revalidate=59" },
+    })
   } catch (error) {
     console.error("Error fetching teams:", error)
     return NextResponse.json({ error: "Failed to fetch teams" }, { status: 500 })
