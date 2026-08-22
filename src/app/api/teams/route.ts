@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.name.localeCompare(b.name))
 
     return NextResponse.json(sanitizedTeams, {
-      headers: { "Cache-Control": "s-maxage=5, stale-while-revalidate=59" },
+      headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" },
     })
   } catch (error) {
     console.error("Error fetching teams:", error)

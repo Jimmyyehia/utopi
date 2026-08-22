@@ -75,18 +75,14 @@ export default function TeamsPage() {
     }
   }, [])
 
-  // Fetch approved teams from API dynamically with instant local cache fallback
+  // Fetch approved teams from API dynamically
   useEffect(() => {
-    // 1. Instantly render from local cache if available
+    // Clear legacy local cache to ensure immediate fresh live render
     try {
-      const cached = sessionStorage.getItem("utopi_cached_teams")
-      if (cached) {
-        setAllTeams(JSON.parse(cached))
-      }
+      sessionStorage.removeItem("utopi_cached_teams")
     } catch (e) {}
 
-    // 2. Fetch fresh data from API in background
-    fetch("/api/teams")
+    fetch("/api/teams", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
