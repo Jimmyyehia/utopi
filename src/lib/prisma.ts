@@ -8,10 +8,12 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL || "file:./dev.db"
-  const isTursoEnabled = process.env.USE_TURSO === "true" && (databaseUrl.startsWith("libsql://") || databaseUrl.startsWith("https://"))
+  const isTursoUrl = databaseUrl.startsWith("libsql://") || databaseUrl.startsWith("https://")
+  const isTursoFlag = process.env.USE_TURSO === "true"
+
   let adapter: any
 
-  if (isTursoEnabled) {
+  if (isTursoUrl || isTursoFlag) {
     // Turso Serverless Cloud Database
     adapter = new PrismaLibSql({
       url: databaseUrl,

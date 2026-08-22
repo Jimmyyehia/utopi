@@ -225,28 +225,39 @@ function SignInForm() {
     setLoadingUserEmail(userEmail)
 
     try {
-      let res = await signIn("credentials", {
+      const res = await signIn("credentials", {
         email: userEmail.trim(),
         password: "password123",
+        callbackUrl,
         redirect: false,
       })
 
       if (res?.error) {
-        res = await signIn("credentials", {
+        const res2 = await signIn("credentials", {
           email: userEmail.trim(),
           password: "Utopi2026!",
+          callbackUrl,
           redirect: false,
         })
-      }
 
-      if (res?.error) {
-        setErrorMessage(`Unable to fast login to ${userEmail}. Please enter credentials above.`)
-        return
+        if (res2?.error) {
+          // Native NextAuth direct form submit redirect fallback
+          await signIn("credentials", {
+            email: userEmail.trim(),
+            password: "password123",
+            callbackUrl,
+          })
+          return
+        }
       }
 
       window.location.href = callbackUrl
     } catch {
-      setErrorMessage("Fast login failed. Please try again.")
+      await signIn("credentials", {
+        email: userEmail.trim(),
+        password: "password123",
+        callbackUrl,
+      })
     } finally {
       setLoadingUserEmail(null)
     }
