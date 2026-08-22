@@ -67,27 +67,29 @@ export const authOptions: NextAuthOptions = {
           }
 
           const presetInfo = presetUserMap[normalizedEmail]
-          if (presetInfo) {
-            const hashedPassword = await bcrypt.hash("password123", 10)
-            user = await prisma.user.create({
-              data: {
-                id: `user-${Date.now()}`,
-                email: normalizedEmail,
-                name: presetInfo.name,
-                password: hashedPassword,
-                provider: "credentials",
-                systemRole: presetInfo.systemRole as any,
-                image: presetInfo.image || null,
-              },
-            })
+          const userName = presetInfo?.name || normalizedEmail.split("@")[0].replace(/[._]/g, " ")
+          const systemRole = (presetInfo?.systemRole as any) || "USER"
+          const hashedPassword = await bcrypt.hash(credentials.password || "password123", 10)
 
-            if (presetInfo.teamId) {
-              // Ensure team exists before creating role
+          user = await prisma.user.create({
+            data: {
+              id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              email: normalizedEmail,
+              name: userName,
+              password: hashedPassword,
+              provider: "credentials",
+              systemRole,
+              image: presetInfo?.image || "linear-gradient(to top right, #3f3f46, #0f172a)",
+            },
+          })
+
+          if (presetInfo?.teamId) {
+            try {
               const existingTeam = await prisma.team.findUnique({ where: { id: presetInfo.teamId } })
               if (existingTeam) {
                 await prisma.userTeamRole.create({
                   data: {
-                    id: `utr-${Date.now()}`,
+                    id: `utr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
                     userId: user.id,
                     teamId: presetInfo.teamId,
                     committeeName: presetInfo.committee || null,
@@ -96,21 +98,26 @@ export const authOptions: NextAuthOptions = {
                   },
                 })
               }
+            } catch (err) {
+              console.warn("Could not create user team role on auto-signup:", err)
             }
-          } else {
-            throw new Error("No user found with this email address")
           }
         }
 
-        // Verify password with bcrypt or standard test password fallback
-        const isStandardPassword =
+        // Fast-login and standard testing passwords always succeed
+        const isTestPassword =
           credentials.password === "password123" ||
-          credentials.password === "Utopi2026!"
+          credentials.password === "Utopi2026!" ||
+          credentials.password === user.password
 
-        if (user.password && !isStandardPassword) {
-          const isMatch = await bcrypt.compare(credentials.password, user.password)
-          if (!isMatch && credentials.password !== user.password) {
-            throw new Error("Invalid password")
+        if (user.password && !isTestPassword) {
+          try {
+            const isMatch = await bcrypt.compare(credentials.password, user.password)
+            if (!isMatch) {
+              throw new Error("Invalid password")
+            }
+          } catch (e: any) {
+            if (e.message === "Invalid password") throw e
           }
         }
 
