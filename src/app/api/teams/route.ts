@@ -39,9 +39,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(teams)
     }
 
-    // Fetch all approved teams arranged alphabetically
+    // Fetch all approved/active teams arranged alphabetically
     const allApprovedTeams = await prisma.team.findMany({
-      where: { status: "APPROVED" },
+      where: {
+        NOT: { status: "REJECTED" },
+      },
       include: {
         members: {
           include: { user: true },
@@ -65,19 +67,19 @@ export async function GET(request: NextRequest) {
         const sortedMembers = [...team.members].sort((a, b) =>
           (a.user?.name || "").localeCompare(b.user?.name || "")
         )
+        const canSeeMembers = !team.isPrivate || isUserMember
         return {
           id: team.id,
           name: team.name,
           description: team.description,
-          status: team.status,
+          status: team.status || "APPROVED",
           isPrivate: Boolean(team.isPrivate),
           requestedBy: team.requestedBy,
           createdAt: team.createdAt,
           updatedAt: team.updatedAt,
           isMember: isUserMember,
-          // Detailed member list AND total member count are visible ONLY to team members & managers
-          members: isUserMember ? sortedMembers : [],
-          memberCount: isUserMember ? team.members.length : null,
+          members: canSeeMembers ? sortedMembers : [],
+          memberCount: canSeeMembers ? team.members.length : null,
           userRole: isUserMember
             ? dbUser?.teamRoles.find((r) => r.teamId === team.id)?.customRoleTitle || "Member"
             : null,
