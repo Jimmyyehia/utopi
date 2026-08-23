@@ -22,12 +22,23 @@ function createPrismaClient() {
     (envDbUrl && (envDbUrl.startsWith("libsql://") || envDbUrl.startsWith("https://"))) ||
     isProduction
 
+  const targetUrl = isTursoUrl
+    ? (envDbUrl && envDbUrl.startsWith("libsql") ? envDbUrl : DEFAULT_TURSO_URL)
+    : envDbUrl || "file:./dev.db"
+
+  const targetToken = isTursoUrl
+    ? (envAuthToken || DEFAULT_TURSO_TOKEN)
+    : undefined
+
+  // Ensure process.env.DATABASE_URL & DATABASE_AUTH_TOKEN are NEVER undefined for Prisma runtime
+  process.env.DATABASE_URL = targetUrl
+  if (targetToken) {
+    process.env.DATABASE_AUTH_TOKEN = targetToken
+  }
+
   let adapter: any
 
   if (isTursoUrl) {
-    const targetUrl = envDbUrl && envDbUrl.startsWith("libsql") ? envDbUrl : DEFAULT_TURSO_URL
-    const targetToken = envAuthToken || DEFAULT_TURSO_TOKEN
-
     // Connection pooling for serverless functions
     const libsqlClient =
       globalForPrisma.libsqlClient ??
