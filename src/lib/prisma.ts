@@ -1,7 +1,6 @@
 import { PrismaClient } from "@/generated/prisma/client"
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 import { PrismaLibSql } from "@prisma/adapter-libsql"
-import { createClient } from "@libsql/client"
 
 const DEFAULT_TURSO_URL = "libsql://utopi-jimmyyehia.aws-ap-northeast-1.turso.io"
 const DEFAULT_TURSO_TOKEN =
@@ -9,14 +8,12 @@ const DEFAULT_TURSO_TOKEN =
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
-  libsqlClient: any | undefined
 }
 
 function createPrismaClient() {
   const envDbUrl = process.env.DATABASE_URL?.trim()
   const envAuthToken = process.env.DATABASE_AUTH_TOKEN?.trim()
 
-  // In production (Vercel) or when DATABASE_URL is set to Turso, connect to Turso Cloud DB
   const isProduction = process.env.NODE_ENV === "production"
   const isTursoUrl =
     (envDbUrl && (envDbUrl.startsWith("libsql://") || envDbUrl.startsWith("https://"))) ||
@@ -30,27 +27,14 @@ function createPrismaClient() {
     ? (envAuthToken || DEFAULT_TURSO_TOKEN)
     : undefined
 
-  // Ensure process.env.DATABASE_URL & DATABASE_AUTH_TOKEN are NEVER undefined for Prisma runtime
-  process.env.DATABASE_URL = targetUrl
-  if (targetToken) {
-    process.env.DATABASE_AUTH_TOKEN = targetToken
-  }
-
   let adapter: any
 
-  if (isTursoUrl) {
-    // Connection pooling for serverless functions
-    const libsqlClient =
-      globalForPrisma.libsqlClient ??
-      createClient({
-        url: targetUrl,
-        authToken: targetToken,
-      })
-    globalForPrisma.libsqlClient = libsqlClient
-
-    adapter = new PrismaLibSql(libsqlClient)
+  if (isTursoUrl || targetUrl.startsWith("libsql://") || targetUrl.startsWith("https://")) {
+    adapter = new PrismaLibSql({
+      url: targetUrl,
+      authToken: targetToken,
+    })
   } else {
-    // Local SQLite for dev mode
     adapter = new PrismaBetterSqlite3({ url: "file:./dev.db" })
   }
 
