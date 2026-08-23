@@ -158,43 +158,26 @@ function SignInForm() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          const fetchedUsers: FastLoginUser[] = data.map((u: any) => {
-            const firstRole = u.teamRoles && u.teamRoles[0]
-            const orgName = firstRole?.team?.name || (u.systemRole === "OWNER" || u.systemRole === "WORKSPACE_MANAGER" || u.systemRole === "ADMIN" ? "Management" : "Shared Area Desk")
-            const roleTitle = firstRole?.customRoleTitle || (u.systemRole === "OWNER" ? "Workspace Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Operations Manager" : u.systemRole === "ADMIN" ? "System Admin" : "Independent Guest")
-            const isMgmt = u.systemRole === "OWNER" || u.systemRole === "WORKSPACE_MANAGER" || u.systemRole === "ADMIN"
+          const combined: FastLoginUser[] = [...PRESET_ACCOUNTS]
+          const seen = new Set<string>(PRESET_ACCOUNTS.map((p) => p.email.toLowerCase().trim()))
 
-            return {
-              name: u.name || "Workspace Member",
-              email: u.email,
-              roleBadge: u.systemRole === "OWNER" ? "Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Manager" : u.systemRole === "ADMIN" ? "Admin" : (firstRole?.customRoleTitle || "Guest"),
-              roleCategory: isMgmt ? "management" : (firstRole ? "tenant" : "guest"),
-              orgName,
-              roleTitle,
+          data.forEach((u: any) => {
+            const norm = u.email?.toLowerCase().trim()
+            if (norm && !seen.has(norm)) {
+              seen.add(norm)
+              const firstRole = u.teamRoles && u.teamRoles[0]
+              const isMgmt = u.systemRole === "OWNER" || u.systemRole === "WORKSPACE_MANAGER" || u.systemRole === "ADMIN"
+
+              combined.push({
+                name: u.name || "Workspace Member",
+                email: u.email,
+                roleBadge: u.systemRole === "OWNER" ? "Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Manager" : u.systemRole === "ADMIN" ? "Admin" : (firstRole?.customRoleTitle || "Guest"),
+                roleCategory: isMgmt ? "management" : (firstRole ? "tenant" : "guest"),
+                orgName: firstRole?.team?.name || (isMgmt ? "Management" : "Shared Area Desk"),
+                roleTitle: firstRole?.customRoleTitle || (u.systemRole === "OWNER" ? "Workspace Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Operations Manager" : u.systemRole === "ADMIN" ? "System Admin" : "Independent Guest"),
+              })
             }
           })
-
-          // Merge preset list with dynamic users without duplicates
-          const seen = new Set<string>()
-          const combined: FastLoginUser[] = []
-
-          // Add DB users first
-          for (const u of fetchedUsers) {
-            const norm = u.email.toLowerCase().trim()
-            if (!seen.has(norm)) {
-              seen.add(norm)
-              combined.push(u)
-            }
-          }
-
-          // Add any missing preset testing accounts
-          for (const p of PRESET_ACCOUNTS) {
-            const norm = p.email.toLowerCase().trim()
-            if (!seen.has(norm)) {
-              seen.add(norm)
-              combined.push(p)
-            }
-          }
 
           setDbUsers(combined)
         } else {
