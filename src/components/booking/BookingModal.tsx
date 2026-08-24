@@ -408,9 +408,15 @@ export function BookingModal({
                   </div>
 
                   {userRoles.length === 0 ? (
-                    <p className="text-sm text-destructive py-2">
-                      No team roles found. Please join a team or sign in with a team account first.
-                    </p>
+                    <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs space-y-1">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <AlertCircle className="h-4 w-4" />
+                        Team Membership Required
+                      </p>
+                      <p className="text-[11px] text-destructive/90">
+                        You must belong to a team to create a room reservation for it. Please join a team or add a team role in your profile first.
+                      </p>
+                    </div>
                   ) : (
                     <RoleSelector
                       userRoles={userRoles}

@@ -160,10 +160,11 @@ export default function SchedulePage() {
           .toISOString()
           .split("T")[0]
 
-        const [roomsRes, bookingsRes, teamsRes] = await Promise.all([
+        const isAuth = Boolean(session?.user?.email)
+        const [roomsRes, bookingsRes, profileRes] = await Promise.all([
           fetch("/api/rooms"),
           fetch(`/api/bookings?startDate=${todayStr}&endDate=${futureDateStr}`),
-          fetch("/api/teams"),
+          isAuth ? fetch("/api/profile") : Promise.resolve(null),
         ])
 
         if (roomsRes.ok) {
@@ -174,23 +175,11 @@ export default function SchedulePage() {
           const bookingsData = await bookingsRes.json()
           setRawBookings(bookingsData)
         }
-        if (teamsRes.ok) {
-          const teamsData = await teamsRes.json()
-          const roles: (UserTeamRole & { team: Team })[] = []
-          teamsData.forEach((t: any) => {
-            const teamObj = t.team || t
-            roles.push({
-              id: t.userTeamRoleId || `role-${t.id}`,
-              userId: session?.user?.id || "user-1",
-              user: {} as any,
-              teamId: teamObj.id || t.id,
-              customRoleTitle: t.customRoleTitle || t.userRole || "Member",
-              committeeName: t.committeeName || null,
-              createdAt: new Date(),
-              team: teamObj,
-            })
-          })
-          setUserRoles(roles)
+        if (profileRes && profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (Array.isArray(profileData.activeRoles)) {
+            setUserRoles(profileData.activeRoles)
+          }
         }
       } catch (err) {
         console.error("Error loading schedule data:", err)

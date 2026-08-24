@@ -251,14 +251,31 @@ export async function POST(request: NextRequest) {
         bookingTeamId = firstTeam?.id || "hawk-insight"
       }
     } else {
-      // Verify user owns the role
+      // Verify user owns the role and belongs to the selected team
       const userTeamRole = await prisma.userTeamRole.findUnique({
         where: { id: userTeamRoleId },
         include: { user: true, team: true },
       })
 
-      if (!userTeamRole || userTeamRole.user.email !== session.user.email) {
-        return NextResponse.json({ error: "Invalid role selection" }, { status: 403 })
+      if (!userTeamRole || userTeamRole.user.email.toLowerCase().trim() !== session.user.email.toLowerCase().trim()) {
+        return NextResponse.json(
+          { error: "Invalid role selection. You must belong to the team to create a booking for it." },
+          { status: 403 }
+        )
+      }
+
+      if (teamId && userTeamRole.teamId !== teamId) {
+        return NextResponse.json(
+          { error: "You must belong to the selected team to create a room reservation for it." },
+          { status: 403 }
+        )
+      }
+
+      if (userTeamRole.status !== "APPROVED") {
+        return NextResponse.json(
+          { error: "Your team role is pending approval. You must have an approved team role to create a booking." },
+          { status: 403 }
+        )
       }
 
       if (userTeamRole.customRoleTitle.trim().toLowerCase() === "member") {

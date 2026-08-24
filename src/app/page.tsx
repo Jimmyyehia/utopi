@@ -184,10 +184,10 @@ export default function HomePage() {
 
         const isAuth = status === "authenticated"
 
-        const [bookingsRes, roomsRes, rolesRes, notifRes] = await Promise.all([
+        const [bookingsRes, roomsRes, profileRes, notifRes] = await Promise.all([
           fetch(`/api/bookings?startDate=${todayStr}&endDate=${futureDateStr}`),
           fetch("/api/rooms"),
-          isAuth ? fetch("/api/teams") : Promise.resolve(null),
+          isAuth ? fetch("/api/profile") : Promise.resolve(null),
           isAuth ? fetch("/api/notifications?limit=10") : Promise.resolve(null),
         ])
 
@@ -201,40 +201,10 @@ export default function HomePage() {
           setRooms(roomsData)
         }
 
-        if (rolesRes && rolesRes.ok) {
-          const roles = await rolesRes.json()
-          if (Array.isArray(roles)) {
-            setUserRoles(
-              roles.map((r: any) => {
-                const teamObj: Team = r.team || {
-                  id: r.id || r.teamId || "team-default",
-                  name: r.name || "Default Team",
-                  description: r.description || null,
-                  createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
-                  updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
-                }
-
-                return {
-                  id: r.userTeamRoleId || r.id || `utr-${Math.random()}`,
-                  userId: session?.user?.id || "",
-                  user: {
-                    id: session?.user?.id || "",
-                    name: session?.user?.name || null,
-                    email: session?.user?.email || "",
-                    image: session?.user?.image || null,
-                    provider: "credentials",
-                    systemRole: (session?.user?.systemRole as any) || "USER",
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  },
-                  teamId: teamObj.id,
-                  team: teamObj,
-                  committeeName: r.committeeName || null,
-                  customRoleTitle: r.userRole || r.customRoleTitle || "Member",
-                  createdAt: new Date(),
-                }
-              })
-            )
+        if (profileRes && profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (Array.isArray(profileData.activeRoles)) {
+            setUserRoles(profileData.activeRoles)
           }
         }
 
