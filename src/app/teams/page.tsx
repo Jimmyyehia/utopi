@@ -14,6 +14,7 @@ import {
   Star,
   Lock,
   UserCheck,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { AppSidebar } from "@/components/layout/AppSidebar"
@@ -56,6 +57,7 @@ export default function TeamsPage() {
   const [createTeamOpen, setCreateTeamOpen] = useState(false)
 
   const [allTeams, setAllTeams] = useState<TeamDirectoryItem[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isManager =
     session?.user?.systemRole === "WORKSPACE_MANAGER" ||
@@ -75,14 +77,20 @@ export default function TeamsPage() {
     }
   }, [])
 
-  // Fetch approved teams from API dynamically
+  // Fetch approved teams from API dynamically with instant cache hydration
   useEffect(() => {
-    // Clear legacy local cache to ensure immediate fresh live render
     try {
-      sessionStorage.removeItem("utopi_cached_teams")
+      const cached = sessionStorage.getItem("utopi_cached_teams")
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllTeams(parsed)
+          setLoading(false)
+        }
+      }
     } catch (e) {}
 
-    fetch("/api/teams", { cache: "no-store" })
+    fetch("/api/teams")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -103,12 +111,15 @@ export default function TeamsPage() {
           }))
 
           setAllTeams(dynamicTeams)
+          setLoading(false)
           try {
             sessionStorage.setItem("utopi_cached_teams", JSON.stringify(dynamicTeams))
           } catch (e) {}
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setLoading(false)
+      })
   }, [session?.user?.email])
 
   // Filter teams by membership & privacy
@@ -272,81 +283,88 @@ export default function TeamsPage() {
 
           {/* Teams Directory Grid */}
           <div className="space-y-6">
-            {filteredTeams.map((team) => {
-              const isMemberView = team.isMember || isManager
-              const canSeeMembers = !team.isPrivate || isMemberView
+            {loading && allTeams.length === 0 ? (
+              <div className="text-center py-16 bg-card rounded-3xl border border-border">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground font-medium">Loading teams directory...</p>
+              </div>
+            ) : (
+              filteredTeams.map((team) => {
+                const isMemberView = team.isMember || isManager
+                const canSeeMembers = !team.isPrivate || isMemberView
 
-              return (
-                <Card key={team.id} className="border-border rounded-3xl overflow-hidden shadow-xs bg-card">
-                  <div className="p-6 border-b border-border/70 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-extrabold text-lg text-foreground flex items-center gap-2.5 tracking-tight">
-                        <Building2 className="h-5 w-5 text-primary" />
-                        <span>{team.name}</span>
-                        {team.isPrivate && (
-                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-400 font-bold flex items-center gap-1">
-                            <Lock className="h-3 w-3" /> Private Team
-                          </Badge>
-                        )}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
-                        {team.description}
-                      </p>
+                return (
+                  <Card key={team.id} className="border-border rounded-3xl overflow-hidden shadow-xs bg-card">
+                    <div className="p-6 border-b border-border/70 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-extrabold text-lg text-foreground flex items-center gap-2.5 tracking-tight">
+                          <Building2 className="h-5 w-5 text-primary" />
+                          <span>{team.name}</span>
+                          {team.isPrivate && (
+                            <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-400 font-bold flex items-center gap-1">
+                              <Lock className="h-3 w-3" /> Private Team
+                            </Badge>
+                          )}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
+                          {team.description}
+                        </p>
+                      </div>
+
+                      {/* Total member count is visible */}
+                      <Badge variant="outline" className="text-xs py-1 px-3 bg-primary/10 text-primary border-primary/30 font-bold self-start sm:self-center">
+                        {team.totalUniqueMembers} Member(s)
+                      </Badge>
                     </div>
 
-                    {/* Total member count is visible */}
-                    <Badge variant="outline" className="text-xs py-1 px-3 bg-primary/10 text-primary border-primary/30 font-bold self-start sm:self-center">
-                      {team.totalUniqueMembers} Member(s)
-                    </Badge>
-                  </div>
-
-                  <CardContent className="p-6">
-                    {canSeeMembers ? (
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {team.groupedMembers.map((member) => (
-                          <div
-                            key={member.userId}
-                            className="p-3.5 rounded-2xl border border-border/70 bg-muted/20 hover:bg-muted/50 transition-all flex items-start gap-3"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary font-black text-sm flex items-center justify-center flex-shrink-0 shadow-2xs mt-0.5">
-                              {getInitials(member.userName)}
-                            </div>
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <p className="text-xs font-extrabold text-foreground truncate">{member.userName}</p>
-                              <div className="flex flex-wrap gap-1">
-                                {member.roles.map((r, rIdx) => (
-                                  <Badge
-                                    key={rIdx}
-                                    variant="outline"
-                                    className="text-[10px] py-0.5 px-2 font-bold text-primary border-primary/30 bg-primary/10"
-                                  >
-                                    {r.combinedTitle}
-                                  </Badge>
-                                ))}
+                    <CardContent className="p-6">
+                      {canSeeMembers ? (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {team.groupedMembers.map((member) => (
+                            <div
+                              key={member.userId}
+                              className="p-3.5 rounded-2xl border border-border/70 bg-muted/20 hover:bg-muted/50 transition-all flex items-start gap-3"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary font-black text-sm flex items-center justify-center flex-shrink-0 shadow-2xs mt-0.5">
+                                {getInitials(member.userName)}
+                              </div>
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <p className="text-xs font-extrabold text-foreground truncate">{member.userName}</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {member.roles.map((r, rIdx) => (
+                                    <Badge
+                                      key={rIdx}
+                                      variant="outline"
+                                      className="text-[10px] py-0.5 px-2 font-bold text-primary border-primary/30 bg-primary/10"
+                                    >
+                                      {r.combinedTitle}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-5 rounded-2xl bg-primary/5 border border-primary/15 text-center space-y-1.5">
-                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary mb-0.5">
-                          <Users className="h-4 w-4" />
+                          ))}
                         </div>
-                        <p className="text-xs font-extrabold text-foreground">
-                          Internal Member Directory
-                        </p>
-                        <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
-                          Detailed member profiles and directory information are visible to active members of {team.name}.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
+                      ) : (
+                        <div className="p-5 rounded-2xl bg-primary/5 border border-primary/15 text-center space-y-1.5">
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary mb-0.5">
+                            <Users className="h-4 w-4" />
+                          </div>
+                          <p className="text-xs font-extrabold text-foreground">
+                            Internal Member Directory
+                          </p>
+                          <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+                            Detailed member profiles and directory information are visible to active members of {team.name}.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
 
-            {filteredTeams.length === 0 && (
+            {!loading && filteredTeams.length === 0 && (
               <div className="text-center py-16 bg-card rounded-3xl border border-border">
                 <p className="text-sm font-semibold text-foreground">
                   {activeTab === "your-teams" ? "You don't belong to any organizations yet" : "No teams found"}

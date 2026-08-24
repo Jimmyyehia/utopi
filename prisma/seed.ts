@@ -6,7 +6,7 @@ import { readFileSync, existsSync } from "fs"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Auto-load .env variables
+// Auto-load .env variables (do not overwrite existing process.env values)
 const envPath = resolve(__dirname, "../.env")
 if (existsSync(envPath)) {
   const envContent = readFileSync(envPath, "utf8")
@@ -17,7 +17,9 @@ if (existsSync(envPath)) {
       if (match) {
         const key = match[1].trim()
         const value = match[2].trim().replace(/^["'](.*)["']$/, "$1")
-        process.env[key] = value
+        if (!process.env[key]) {
+          process.env[key] = value
+        }
       }
     }
   })
@@ -40,6 +42,107 @@ async function main() {
   // Test connection
   await client.execute("SELECT 1")
   console.log("✅ Connection successful")
+
+  // Ensure database tables exist before inserting seed data
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE NOT NULL,
+      emailVerified DATETIME,
+      image TEXT,
+      bannerImage TEXT,
+      password TEXT,
+      provider TEXT DEFAULT 'credentials',
+      systemRole TEXT DEFAULT 'USER',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'APPROVED',
+      requestedBy TEXT,
+      isPrivate BOOLEAN DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS user_team_roles (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      teamId TEXT NOT NULL,
+      committeeName TEXT,
+      customRoleTitle TEXT NOT NULL,
+      status TEXT DEFAULT 'APPROVED',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (teamId) REFERENCES teams(id) ON DELETE CASCADE,
+      UNIQUE(userId, teamId, committeeName, customRoleTitle)
+    )
+  `)
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      capacity INTEGER NOT NULL,
+      hasScreen BOOLEAN DEFAULT 0,
+      hasBalcony BOOLEAN DEFAULT 0,
+      hasAC BOOLEAN DEFAULT 1,
+      hasWhiteboard BOOLEAN DEFAULT 1,
+      hasPowerOutlets BOOLEAN DEFAULT 1,
+      description TEXT,
+      svgPolygonCoords TEXT NOT NULL,
+      svgX REAL DEFAULT 0,
+      svgY REAL DEFAULT 0,
+      color TEXT DEFAULT '#67C2B2',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id TEXT PRIMARY KEY,
+      roomId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      teamId TEXT NOT NULL,
+      roleTitleUsed TEXT NOT NULL,
+      projectOrCommitteeName TEXT NOT NULL,
+      startTime DATETIME NOT NULL,
+      endTime DATETIME NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'PENDING',
+      paymentStatus TEXT DEFAULT 'CASH_PENDING',
+      priorityScore INTEGER DEFAULT 0,
+      rejectionReason TEXT,
+      isIncognito BOOLEAN DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (roomId) REFERENCES rooms(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (teamId) REFERENCES teams(id) ON DELETE CASCADE
+    )
+  `)
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      isRead BOOLEAN DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `)
 
   // Create testing accounts
   const users = [

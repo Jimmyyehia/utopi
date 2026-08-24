@@ -33,6 +33,7 @@ interface BookingModalProps {
   onSubmit: (data: BookingFormData) => Promise<void>
   userRoles: (UserTeamRole & { team: Team })[]
   rooms: Room[]
+  allTeams?: Team[]
   initialRoomId?: string
   initialDate?: Date
   isLoading?: boolean
@@ -125,6 +126,25 @@ function RoleSelector({
       )}
     </div>
   )
+}
+
+const getLocalDateString = (d: Date) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+const getDurationLabel = (start?: Date, end?: Date) => {
+  if (!start || !end) return "0m"
+  const diffMs = end.getTime() - start.getTime()
+  if (diffMs <= 0) return "Invalid"
+  const totalMins = Math.floor(diffMs / (60 * 1000))
+  const hrs = Math.floor(totalMins / 60)
+  const mins = totalMins % 60
+  if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`
+  if (hrs > 0) return `${hrs}h`
+  return `${mins}m`
 }
 
 // Generate 30-minute interval time options between 9:00 AM and 10:00 PM
@@ -226,11 +246,21 @@ export function BookingModal({
   onSubmit,
   userRoles,
   rooms,
+  allTeams,
   initialRoomId,
   initialDate,
   isLoading,
 }: BookingModalProps) {
   const [selectedRole, setSelectedRole] = useState<(UserTeamRole & { team: Team }) | undefined>()
+  const [fetchedTeams, setFetchedTeams] = useState<Team[]>(allTeams || [])
+  const [selectedManagementTeamId, setSelectedManagementTeamId] = useState<string>("")
+
+  const { data: session } = useSession()
+  const isManagement =
+    session?.user?.systemRole === "OWNER" ||
+    session?.user?.systemRole === "WORKSPACE_MANAGER" ||
+    session?.user?.systemRole === "ADMIN"
+  const isGuest = session?.user?.systemRole === "GUEST"
 
   // Calculate clean initial start time snapped to next half hour between 9:00 AM and 10:00 PM
   const getInitialStartTime = () => {
@@ -254,14 +284,28 @@ export function BookingModal({
   }
 
   const defaultStart = getInitialStartTime()
-  const defaultEnd = new Date(defaultStart.getTime() + 60 * 60 * 1000) // Default 1 hour duration
+  const defaultEnd = new Date(defaultStart.getTime() + 60 * 60 * 1000)
 
-  const { data: session } = useSession()
-  const isManagement =
-    session?.user?.systemRole === "OWNER" ||
-    session?.user?.systemRole === "WORKSPACE_MANAGER" ||
-    session?.user?.systemRole === "ADMIN"
-  const isGuest = session?.user?.systemRole === "GUEST"
+  useEffect(() => {
+    if (allTeams && allTeams.length > 0) {
+      setFetchedTeams(allTeams)
+      if (!selectedManagementTeamId && allTeams.length > 0) {
+        setSelectedManagementTeamId(allTeams[0].id)
+      }
+    } else if (isManagement && isOpen) {
+      fetch("/api/teams")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Team[]) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setFetchedTeams(data)
+            if (!selectedManagementTeamId) {
+              setSelectedManagementTeamId(data[0].id)
+            }
+          }
+        })
+        .catch((err) => console.error("Error fetching teams for management booking:", err))
+    }
+  }, [allTeams, isManagement, isOpen])
 
   const [isIncognito, setIsIncognito] = useState(false)
 
@@ -327,30 +371,41 @@ export function BookingModal({
   const [submittedBooking, setSubmittedBooking] = useState<{
     reference: string
     roomName: string
+    teamName: string
     timeSpan: string
     status: string
   } | null>(null)
 
   const onFormSubmit = async (data: BookingFormValues) => {
-    const activeRole = userRoles.find((r) => r.id === data.userTeamRoleId)
-    await onSubmit({
-      roomId: isGuest ? "shared-area" : data.roomId,
-      teamId: activeRole?.team.id || "",
-      userTeamRoleId: data.userTeamRoleId || (isManagement || isGuest ? "guest-role" : ""),
-      projectOrCommitteeName: data.projectOrCommitteeName,
-      startTime: data.startTime,
-      endTime: data.endTime,
-      description: data.description || "",
-      isIncognito,
-    })
+    try {
+      const activeRole = userRoles.find((r) => r.id === data.userTeamRoleId)
+      const targetTeamId = isManagement ? selectedManagementTeamId : activeRole?.team.id || ""
+      const selectedTeamName = isManagement
+        ? fetchedTeams.find((t) => t.id === selectedManagementTeamId)?.name || "Workspace Management"
+        : activeRole?.team.name || "Selected Team"
 
-    const ref = `UTP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
-    setSubmittedBooking({
-      reference: ref,
-      roomName: rooms.find((r) => r.id === (isGuest ? "shared-area" : data.roomId))?.name || "Selected Room",
-      timeSpan: `${data.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${data.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-      status: isManagement ? "APPROVED" : "PENDING",
-    })
+      await onSubmit({
+        roomId: isGuest ? "shared-area" : data.roomId,
+        teamId: targetTeamId,
+        userTeamRoleId: data.userTeamRoleId || (isManagement || isGuest ? "guest-role" : ""),
+        projectOrCommitteeName: data.projectOrCommitteeName,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        description: data.description || "",
+        isIncognito,
+      })
+
+      const ref = `UTP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+      setSubmittedBooking({
+        reference: ref,
+        roomName: rooms.find((r) => r.id === (isGuest ? "shared-area" : data.roomId))?.name || "Selected Room",
+        teamName: selectedTeamName,
+        timeSpan: `${data.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${data.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        status: isManagement ? "APPROVED" : "PENDING",
+      })
+    } catch (err) {
+      // Error handled cleanly by page notification modal
+    }
   }
 
   const selectedRoomDetails = rooms.find((r) => r.id === watch("roomId"))
@@ -369,7 +424,7 @@ export function BookingModal({
               </DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm">
                 {isManagement
-                  ? "As workspace management, your room reservation is accepted automatically without queueing."
+                  ? "As workspace management, select the target organization/team and schedule your auto-approved reservation."
                   : "Choose your team identity, select a room, and schedule your booking. Workspace manager approval is required."}
               </DialogDescription>
             </DialogHeader>
@@ -381,7 +436,7 @@ export function BookingModal({
             >
               {/* Identity / Role Section */}
               {isManagement ? (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
                       <ShieldCheck className="h-4 w-4" />
@@ -394,6 +449,30 @@ export function BookingModal({
                   <p className="text-xs text-muted-foreground">
                     Booking directly as <strong className="text-foreground">{session?.user?.name}</strong>. Reservation is accepted immediately.
                   </p>
+
+                  {/* Team Selector for Workspace Higher Roles */}
+                  <div className="space-y-1.5 pt-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      Target Organization / Team
+                    </Label>
+                    <Select
+                      value={selectedManagementTeamId}
+                      onValueChange={setSelectedManagementTeamId}
+                      disabled={isSubmitting || isLoading}
+                    >
+                      <SelectTrigger className="w-full bg-card font-medium">
+                        <SelectValue placeholder="Select target team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fetchedTeams.map((team) => (
+                          <SelectItem key={team.id} value={team.id} className="cursor-pointer font-medium">
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
@@ -500,9 +579,9 @@ export function BookingModal({
                   </Label>
                   <Input
                     type="date"
-                    value={watch("startTime") ? new Date(watch("startTime")).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}
-                    min={new Date().toISOString().split("T")[0]}
-                    max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                    value={watch("startTime") ? getLocalDateString(new Date(watch("startTime"))) : getLocalDateString(new Date())}
+                    min={getLocalDateString(new Date())}
+                    max={getLocalDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))}
                     onChange={(e) => {
                       const newDateStr = e.target.value
                       if (!newDateStr) return
@@ -522,88 +601,113 @@ export function BookingModal({
                 </div>
 
                 {/* From & To Time Selectors */}
-                <div className="grid gap-4 sm:grid-cols-2 pt-1">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      From (Start Time)
-                    </Label>
-                    <Select
-                      value={
-                        watch("startTime")
-                          ? `${String(new Date(watch("startTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("startTime")).getMinutes()).padStart(2, "0")}`
-                          : "09:00"
-                      }
-                      onValueChange={(val) => {
-                        const [hours, minutes] = val.split(":").map(Number)
-                        const currentStart = new Date(watch("startTime"))
-                        currentStart.setHours(hours, minutes, 0, 0)
-                        setValue("startTime", currentStart, { shouldValidate: true })
+                {(() => {
+                  const startTimeVal = watch("startTime") ? new Date(watch("startTime")) : new Date()
+                  const startMins = startTimeVal.getHours() * 60 + startTimeVal.getMinutes()
 
-                        // Auto-adjust End Time if it's before or equal to Start Time
-                        const currentEnd = new Date(watch("endTime"))
-                        if (currentEnd <= currentStart) {
-                          const newEnd = new Date(currentStart.getTime() + 60 * 60 * 1000)
-                          setValue("endTime", newEnd, { shouldValidate: true })
-                        }
-                      }}
-                      disabled={isSubmitting || isLoading}
-                    >
-                      <SelectTrigger className="w-full bg-card font-mono text-xs">
-                        <SelectValue placeholder="Select start time" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-56">
-                        {HALF_HOUR_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.startTime && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        {errors.startTime.message}
-                      </p>
-                    )}
-                  </div>
+                  // End time options must be strictly after start time
+                  const endTimeOptions = HALF_HOUR_OPTIONS.filter((opt) => {
+                    const [h, m] = opt.value.split(":").map(Number)
+                    return h * 60 + m > startMins
+                  })
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      To (End Time)
-                    </Label>
-                    <Select
-                      value={
-                        watch("endTime")
-                          ? `${String(new Date(watch("endTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("endTime")).getMinutes()).padStart(2, "0")}`
-                          : "10:00"
-                      }
-                      onValueChange={(val) => {
-                        const [hours, minutes] = val.split(":").map(Number)
-                        const currentEnd = new Date(watch("endTime"))
-                        currentEnd.setHours(hours, minutes, 0, 0)
-                        setValue("endTime", currentEnd, { shouldValidate: true })
-                      }}
-                      disabled={isSubmitting || isLoading}
-                    >
-                      <SelectTrigger className="w-full bg-card font-mono text-xs">
-                        <SelectValue placeholder="Select end time" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-56">
-                        {HALF_HOUR_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.endTime && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        {errors.endTime.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid gap-4 sm:grid-cols-2 pt-1">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            From (Start Time)
+                          </Label>
+                          <Select
+                            value={
+                              watch("startTime")
+                                ? `${String(new Date(watch("startTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("startTime")).getMinutes()).padStart(2, "0")}`
+                                : "09:00"
+                            }
+                            onValueChange={(val) => {
+                              const [hours, minutes] = val.split(":").map(Number)
+                              const currentStart = new Date(watch("startTime"))
+                              currentStart.setHours(hours, minutes, 0, 0)
+                              setValue("startTime", currentStart, { shouldValidate: true })
+
+                              // Auto-adjust End Time if it's before or equal to Start Time
+                              const currentEnd = new Date(watch("endTime"))
+                              if (currentEnd <= currentStart) {
+                                const maxTimeMs = new Date(currentStart).setHours(22, 0, 0, 0)
+                                const candidateMs = currentStart.getTime() + 60 * 60 * 1000
+                                const newEnd = new Date(Math.min(maxTimeMs, candidateMs))
+                                setValue("endTime", newEnd, { shouldValidate: true })
+                              }
+                            }}
+                            disabled={isSubmitting || isLoading}
+                          >
+                            <SelectTrigger className="w-full bg-card font-mono text-xs">
+                              <SelectValue placeholder="Select start time" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {HALF_HOUR_OPTIONS.slice(0, -1).map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errors.startTime && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              {errors.startTime.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            To (End Time)
+                          </Label>
+                          <Select
+                            value={
+                              watch("endTime")
+                                ? `${String(new Date(watch("endTime")).getHours()).padStart(2, "0")}:${String(new Date(watch("endTime")).getMinutes()).padStart(2, "0")}`
+                                : "10:00"
+                            }
+                            onValueChange={(val) => {
+                              const [hours, minutes] = val.split(":").map(Number)
+                              const currentEnd = new Date(watch("endTime"))
+                              currentEnd.setHours(hours, minutes, 0, 0)
+                              setValue("endTime", currentEnd, { shouldValidate: true })
+                            }}
+                            disabled={isSubmitting || isLoading}
+                          >
+                            <SelectTrigger className="w-full bg-card font-mono text-xs">
+                              <SelectValue placeholder="Select end time" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {(endTimeOptions.length > 0 ? endTimeOptions : HALF_HOUR_OPTIONS.slice(1)).map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value} className="text-xs font-medium cursor-pointer">
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errors.endTime && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              {errors.endTime.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Live Calculated Duration Badge */}
+                      <div className="flex items-center justify-between px-1 pt-1 border-t border-border/40">
+                        <span className="text-[11px] font-medium text-muted-foreground">Reservation Duration:</span>
+                        <Badge variant="outline" className="text-xs font-mono font-bold bg-primary/10 text-primary border-primary/20">
+                          ⏱️ {getDurationLabel(watch("startTime"), watch("endTime"))}
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Description */}
@@ -734,7 +838,7 @@ export function BookingModal({
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {submittedBooking.status === "APPROVED"
-                  ? "Your room reservation has been auto-approved."
+                  ? "Your room reservation has been automatically approved and confirmed for your role."
                   : "Your request has been submitted to workspace management for review."}
               </DialogDescription>
             </div>
@@ -743,6 +847,10 @@ export function BookingModal({
               <div className="flex items-center justify-between pb-2 border-b border-border/60">
                 <span className="text-muted-foreground">Reference Code:</span>
                 <span className="font-mono font-bold text-primary">{submittedBooking.reference}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Organization / Team:</span>
+                <span className="font-semibold text-foreground">{submittedBooking.teamName}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Reserved Room:</span>

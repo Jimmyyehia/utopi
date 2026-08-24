@@ -42,7 +42,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { status, rejectionReason, startTime, endTime, roomId, description, projectOrCommitteeName } = body
+    const { status, rejectionReason, startTime, endTime, roomId, description, projectOrCommitteeName, teamId, userTeamRoleId, isIncognito } = body
 
     const booking = await prisma.booking.findUnique({
       where: { id },
@@ -68,7 +68,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Requester can reschedule/edit their PENDING request in-place
+    // Requester can reschedule/edit their request in-place
     if (isOwner && !isManager) {
       if (booking.status !== "PENDING" && status && status !== "CANCELLED") {
         return NextResponse.json({ error: "You can only edit or cancel your own pending requests" }, { status: 403 })
@@ -83,6 +83,9 @@ export async function PUT(
     if (roomId) updateData.roomId = roomId
     if (description !== undefined) updateData.description = description
     if (projectOrCommitteeName) updateData.projectOrCommitteeName = projectOrCommitteeName
+    if (teamId) updateData.teamId = teamId
+    if (userTeamRoleId) updateData.userTeamRoleId = userTeamRoleId
+    if (isIncognito !== undefined) updateData.isIncognito = Boolean(isIncognito)
 
     const updatedBooking = await prisma.booking.update({
       where: { id },

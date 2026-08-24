@@ -712,6 +712,20 @@ export function FloorPlan({
     })
   }, [rooms, bookings, currentTime])
 
+  useEffect(() => {
+    const handleSelectRoom = (e: CustomEvent) => {
+      const roomId = e.detail?.id
+      if (roomId) {
+        const found = roomsWithStatus.find((r) => r.id === roomId)
+        if (found) {
+          onRoomSelect(found)
+        }
+      }
+    }
+    window.addEventListener("utopi:select_room", handleSelectRoom as EventListener)
+    return () => window.removeEventListener("utopi:select_room", handleSelectRoom as EventListener)
+  }, [roomsWithStatus, onRoomSelect])
+
   const isRoomMatchingFilters = (room: FloorPlanRoom) => {
     if (searchFilter && !room.name.toLowerCase().includes(searchFilter.toLowerCase())) {
       return false

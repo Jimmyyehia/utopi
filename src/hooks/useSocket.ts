@@ -23,8 +23,13 @@ export function useSocket() {
   const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+
+    // Use pure websocket transport with limited reconnect attempts to prevent network polling lag
     const newSocket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
+      reconnectionAttempts: 2,
+      timeout: 1500,
       autoConnect: true,
     })
 
@@ -88,10 +93,17 @@ export function useSocket() {
 
 export function useRealtimeBookings(initialBookings: BookingWithRelations[]) {
   const [bookings, setBookings] = useState<BookingWithRelations[]>(initialBookings)
+  const prevSignatureRef = useRef<string>("")
   const { onBookingUpdate } = useSocket()
 
   useEffect(() => {
-    setBookings(initialBookings)
+    const currentSignature = (initialBookings || [])
+      .map((b) => `${b.id}-${b.updatedAt || ""}-${b.status || ""}`)
+      .join("|")
+    if (currentSignature !== prevSignatureRef.current) {
+      prevSignatureRef.current = currentSignature
+      setBookings(initialBookings)
+    }
   }, [initialBookings])
 
   useEffect(() => {
@@ -119,10 +131,15 @@ export function useRealtimeBookings(initialBookings: BookingWithRelations[]) {
 
 export function useRealtimeRoomStatus(initialRooms: FloorPlanRoom[]) {
   const [rooms, setRooms] = useState<FloorPlanRoom[]>(initialRooms)
+  const prevSignatureRef = useRef<string>("")
   const { onRoomStatusUpdate } = useSocket()
 
   useEffect(() => {
-    setRooms(initialRooms)
+    const currentSignature = (initialRooms || []).map((r) => `${r.id}-${r.status || ""}`).join("|")
+    if (currentSignature !== prevSignatureRef.current) {
+      prevSignatureRef.current = currentSignature
+      setRooms(initialRooms)
+    }
   }, [initialRooms])
 
   useEffect(() => {

@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react"
 import { ReactNode, useEffect } from "react"
 import { useSocket } from "@/hooks/useSocket"
+import { UtopiContextMenuProvider } from "@/components/ui/UtopiContextMenu"
 
 function GlobalSocketListener() {
   const { isConnected, onBookingUpdate, onRoomStatusUpdate } = useSocket()
@@ -28,8 +29,10 @@ function GlobalSocketListener() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <GlobalSocketListener />
-      {children}
+      <UtopiContextMenuProvider>
+        <GlobalSocketListener />
+        {children}
+      </UtopiContextMenuProvider>
     </SessionProvider>
   )
 }
