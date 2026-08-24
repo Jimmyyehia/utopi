@@ -66,8 +66,6 @@ export const authOptions: NextAuthOptions = {
           "laila@hackerrank-aufs.org": { id: "user-laila", name: "Laila Nader", systemRole: "USER", teamId: "hackerrank-aufs", roleTitle: "Lead Problem Setter", committee: "Technical Content", image: "linear-gradient(to top right, #2563eb, #22d3ee)" },
           "karim@phd-case.org": { id: "user-karim", name: "Karim Zaki", systemRole: "USER", teamId: "phd", roleTitle: "Executive Director", committee: "Leadership", image: "linear-gradient(to top right, #f59e0b, #f43f5e)" },
           "youssef@phd-case.org": { id: "user-youssef", name: "Youssef Hassan", systemRole: "USER", teamId: "phd", roleTitle: "Strategy & Case Lead", committee: "Case Competition", image: "linear-gradient(to top right, #059669, #2dd4bf)" },
-          "guest@utopi.space": { id: "user-guest", name: "Gabriel Miller", systemRole: "USER", teamId: "hawk-insight", roleTitle: "Founder", committee: "Media Operations", image: "linear-gradient(to top right, #f59e0b, #f43f5e)" },
-          "sarah@visitor.space": { id: "user-sarah", name: "Sarah Jenkins", systemRole: "USER", teamId: "nexus-labs", roleTitle: "Vice President", committee: "Operations", image: "linear-gradient(to top right, #db2777, #fb7185)" },
         }
 
         const presetInfo = presetUserMap[normalizedEmail]

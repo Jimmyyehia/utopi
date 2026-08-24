@@ -39,8 +39,6 @@ const USERS = [
   { id: "user-laila", email: "laila@hackerrank-aufs.org", name: "Laila Nader", systemRole: "USER", image: "linear-gradient(to top right, #2563eb, #22d3ee)" },
   { id: "user-karim", email: "karim@phd-case.org", name: "Karim Zaki", systemRole: "USER", image: "linear-gradient(to top right, #f59e0b, #f43f5e)" },
   { id: "user-youssef", email: "youssef@phd-case.org", name: "Youssef Hassan", systemRole: "USER", image: "linear-gradient(to top right, #059669, #2dd4bf)" },
-  { id: "user-guest", email: "guest@utopi.space", name: "Gabriel Miller", systemRole: "USER", image: "linear-gradient(to top right, #f59e0b, #f43f5e)" },
-  { id: "user-sarah", email: "sarah@visitor.space", name: "Sarah Jenkins", systemRole: "USER", image: "linear-gradient(to top right, #db2777, #fb7185)" },
 ]
 
 const TEAMS = [
@@ -60,8 +58,6 @@ const USER_TEAM_ROLES = [
   { id: "utr-laila-setter", userId: "user-laila", teamId: "hackerrank-aufs", committeeName: "Technical Content", customRoleTitle: "Lead Problem Setter" },
   { id: "utr-karim-director", userId: "user-karim", teamId: "phd", committeeName: "Leadership", customRoleTitle: "Executive Director" },
   { id: "utr-youssef-strategy", userId: "user-youssef", teamId: "phd", committeeName: "Case Competition", customRoleTitle: "Strategy & Case Lead" },
-  { id: "utr-guest-founder", userId: "user-guest", teamId: "hawk-insight", committeeName: "Media Operations", customRoleTitle: "Founder" },
-  { id: "utr-sarah-vp", userId: "user-sarah", teamId: "nexus-labs", committeeName: "Operations", customRoleTitle: "Vice President" },
 ]
 
 async function seedDatabase(url: string, token?: string, label = "DB") {

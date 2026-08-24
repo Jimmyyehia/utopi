@@ -41,7 +41,7 @@
 
 ## 👥 Preset Testing Personas
 
-Utopi includes **1-Click Fast Login** on `/auth/signin` with 13 pre-configured testing accounts:
+Utopi includes **1-Click Fast Login** on `/auth/signin` with 11 pre-configured testing accounts:
 
 | Role Category | Name | Email | Default Title & Team | Password |
 | :--- | :--- | :--- | :--- | :--- |
@@ -56,8 +56,6 @@ Utopi includes **1-Click Fast Login** on `/auth/signin` with 13 pre-configured t
 | **HackerRank AUFS** | Laila Nader | `laila@hackerrank-aufs.org` | Lead Problem Setter | `password123` |
 | **PHD** | Karim Zaki | `karim@phd-case.org` | Executive Director | `password123` |
 | **PHD** | Youssef Hassan | `youssef@phd-case.org` | Strategy & Case Lead | `password123` |
-| **Guest** | Gabriel Miller | `guest@utopi.space` | Founder (Media Ops) | `password123` |
-| **Guest** | Sarah Jenkins | `sarah@visitor.space` | Vice President | `password123` |
 
 ---
 

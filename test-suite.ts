@@ -68,7 +68,7 @@ async function runTests() {
     const usersRes = await client.execute("SELECT * FROM users")
     const emails = usersRes.rows.map((r: any) => r.email)
     assert(emails.includes("owner@utopi.space"), "Owner persona (owner@utopi.space) exists in database")
-    assert(usersRes.rows.length >= 13, `Users table has required personas including Owner (found: ${usersRes.rows.length})`)
+    assert(usersRes.rows.length >= 10, `Users table has required personas including Owner (found: ${usersRes.rows.length})`)
 
     const roomsRes = await client.execute("SELECT id, name, capacity, svgPolygonCoords FROM rooms")
     assert(roomsRes.rows.length === 4, `Rooms table has 4 configured spaces (found: ${roomsRes.rows.length})`)

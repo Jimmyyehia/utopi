@@ -122,22 +122,6 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     orgName: "Nexus Labs",
     roleTitle: "Senior AI Engineer",
   },
-  {
-    name: "Gabriel Miller",
-    email: "guest@utopi.space",
-    roleBadge: "Founder",
-    roleCategory: "team",
-    orgName: "Hawk Insight",
-    roleTitle: "Media Operations Founder",
-  },
-  {
-    name: "Sarah Jenkins",
-    email: "sarah@visitor.space",
-    roleBadge: "VP",
-    roleCategory: "team",
-    orgName: "Nexus Labs",
-    roleTitle: "Vice President",
-  },
 ]
 
 function SignInForm() {
