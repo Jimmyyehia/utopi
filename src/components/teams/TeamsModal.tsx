@@ -56,7 +56,7 @@ export function TeamsModal({ isOpen, onClose }: TeamsModalProps) {
             const mapped: TeamDirectoryItem[] = data.map((t: any) => ({
               id: t.id,
               name: t.name,
-              description: t.description || "Workspace tenant organization.",
+              description: t.description || "Workspace organization.",
               members: (t.members || []).map((m: any) => ({
                 userId: m.userId || m.user?.id || "u-dyn",
                 userName: m.user?.name || m.userName || "Member",

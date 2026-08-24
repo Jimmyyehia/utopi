@@ -80,7 +80,7 @@ async function runTests() {
     assert(roomNames.includes("Shared Area"), "Shared Area (50 Max, Balconies, Fans, Sockets) exists")
 
     const rolesRes = await client.execute("SELECT * FROM user_team_roles")
-    assert(rolesRes.rows.length >= 5, `Tenant team roles for regular members exist (found: ${rolesRes.rows.length})`)
+    assert(rolesRes.rows.length >= 5, `Team roles for regular members exist (found: ${rolesRes.rows.length})`)
 
     const bookingsRes = await client.execute("SELECT * FROM bookings")
     assert(Array.isArray(bookingsRes.rows), `Bookings table ready for real user reservations (found: ${bookingsRes.rows.length})`)

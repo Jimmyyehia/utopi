@@ -218,7 +218,7 @@ export default function SignUpPage() {
                     <span>Workspace Member</span>
                   </div>
                   <p className="text-[10px] font-normal opacity-80 mt-0.5">
-                    Independent or tenant organization
+                    Independent or community organization
                   </p>
                 </button>
 

@@ -28,7 +28,7 @@ interface FastLoginUser {
   name: string
   email: string
   roleBadge: string
-  roleCategory: "management" | "tenant" | "custom" | "guest"
+  roleCategory: "management" | "team" | "custom" | "guest"
   orgName: string
   roleTitle: string
 }
@@ -62,7 +62,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Alice Chen",
     email: "alice@hawkinsight.com",
     roleBadge: "PR Head",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Hawk Insight",
     roleTitle: "PR Head & Tech Lead",
   },
@@ -70,7 +70,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Bob Martinez",
     email: "bob@hawkinsight.com",
     roleBadge: "Senior",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Hawk Insight",
     roleTitle: "Senior Designer",
   },
@@ -78,7 +78,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Tarek Mansour",
     email: "tarek@hackerrank-aufs.org",
     roleBadge: "President",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "HackerRank AUFS",
     roleTitle: "Chapter President",
   },
@@ -86,7 +86,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Laila Nader",
     email: "laila@hackerrank-aufs.org",
     roleBadge: "Lead",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "HackerRank AUFS",
     roleTitle: "Lead Problem Setter",
   },
@@ -94,7 +94,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Karim Zaki",
     email: "karim@phd-case.org",
     roleBadge: "Director",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "PHD",
     roleTitle: "Executive Director",
   },
@@ -102,7 +102,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Youssef Hassan",
     email: "youssef@phd-case.org",
     roleBadge: "Lead",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "PHD",
     roleTitle: "Strategy & Case Lead",
   },
@@ -110,7 +110,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Carol Kim",
     email: "carol@nexuslabs.com",
     roleBadge: "Lead",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Nexus Labs",
     roleTitle: "AI Research Lead",
   },
@@ -118,7 +118,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "David Park",
     email: "david@freelancer.com",
     roleBadge: "Senior",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Nexus Labs",
     roleTitle: "Senior AI Engineer",
   },
@@ -126,7 +126,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Gabriel Miller",
     email: "guest@utopi.space",
     roleBadge: "Founder",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Hawk Insight",
     roleTitle: "Media Operations Founder",
   },
@@ -134,7 +134,7 @@ const PRESET_ACCOUNTS: FastLoginUser[] = [
     name: "Sarah Jenkins",
     email: "sarah@visitor.space",
     roleBadge: "VP",
-    roleCategory: "tenant",
+    roleCategory: "team",
     orgName: "Nexus Labs",
     roleTitle: "Vice President",
   },
@@ -172,7 +172,7 @@ function SignInForm() {
                 name: u.name || "Workspace Member",
                 email: u.email,
                 roleBadge: u.systemRole === "OWNER" ? "Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Manager" : u.systemRole === "ADMIN" ? "Admin" : (firstRole?.customRoleTitle || "Guest"),
-                roleCategory: isMgmt ? "management" : (firstRole ? "tenant" : "guest"),
+                roleCategory: isMgmt ? "management" : (firstRole ? "team" : "guest"),
                 orgName: firstRole?.team?.name || (isMgmt ? "Management" : "Shared Area Desk"),
                 roleTitle: firstRole?.customRoleTitle || (u.systemRole === "OWNER" ? "Workspace Owner" : u.systemRole === "WORKSPACE_MANAGER" ? "Operations Manager" : u.systemRole === "ADMIN" ? "System Admin" : "Independent Guest"),
               })
@@ -265,12 +265,12 @@ function SignInForm() {
   const displayedUsers = dbUsers.length > 0 ? dbUsers : PRESET_ACCOUNTS
   const managementUsers = displayedUsers.filter((u) => u.roleCategory === "management")
   
-  // Group tenant organization users by organization (excl. guests)
-  const tenantUsersOnly = displayedUsers.filter(
-    (u) => u.roleCategory === "tenant" && u.orgName !== "Shared Area Desk"
+  // Group team organization users by organization (excl. guests)
+  const teamUsersOnly = displayedUsers.filter(
+    (u) => u.roleCategory === "team" && u.orgName !== "Shared Area Desk"
   )
   const orgMap = new Map<string, FastLoginUser[]>()
-  tenantUsersOnly.forEach((u) => {
+  teamUsersOnly.forEach((u) => {
     const list = orgMap.get(u.orgName) || []
     list.push(u)
     orgMap.set(u.orgName, list)
@@ -288,7 +288,7 @@ function SignInForm() {
           Welcome to Utopi
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
-          Enterprise workspace management platform for tenant organizations, committees, and guests.
+          Enterprise workspace management platform for partner organizations, committees, and guests.
         </p>
       </div>
 
@@ -452,7 +452,7 @@ function SignInForm() {
               <div className="space-y-4 pt-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
-                  <span>Tenant Teams & Active Organizations (2+ Members Each)</span>
+                  <span>Partner Organizations & Teams (2+ Members Each)</span>
                 </div>
 
                 {Array.from(orgMap.entries()).map(([orgName, members]) => (

@@ -123,7 +123,7 @@ export function CreateTeamModal({ isOpen, onClose, onSuccess }: CreateTeamModalP
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {isManager
-                    ? "Add an active tenant team to Utopi"
+                    ? "Add an active organization team to Utopi"
                     : "Submit a new team for workspace manager approval"}
                 </p>
               </div>

@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // For regular tenant users, connect requesting user to the team with their role title.
-    // Workspace Management users create organizations for the workspace without being assigned as tenant members.
+    // For regular member users, connect requesting user to the team with their role title.
+    // Workspace Management users create organizations for the workspace without being assigned as team members.
     if (!isManager) {
       const user = await prisma.user.findUnique({ where: { email: session.user.email } })
       if (user) {

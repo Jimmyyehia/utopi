@@ -100,7 +100,7 @@ export async function PUT(
         const emailContent = generateTeamRejectedEmail({
           userName: requesterUser.name || requesterUser.email,
           teamName: updatedTeam.name,
-          reason: rejectionReason || "Does not meet workspace tenant criteria.",
+          reason: rejectionReason || "Does not meet workspace organization criteria.",
         })
         sendEmail({
           to: requesterUser.email,

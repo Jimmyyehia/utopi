@@ -89,7 +89,7 @@ export default function TeamsPage() {
           const dynamicTeams: TeamDirectoryItem[] = data.map((t: any) => ({
             id: t.id,
             name: t.name,
-            description: t.description || "Workspace tenant organization.",
+            description: t.description || "Workspace organization.",
             isPrivate: Boolean(t.isPrivate),
             isMember: Boolean(t.isMember),
             members: (t.members || []).map((m: any) => ({
@@ -191,7 +191,7 @@ export default function TeamsPage() {
               <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight leading-tight">
                 Teams & Organizations
               </h1>
-              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">Tenant directory</p>
+              <p className="text-[10px] text-muted-foreground sm:hidden font-medium">Organization directory</p>
             </div>
           </div>
 

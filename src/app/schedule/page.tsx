@@ -1005,7 +1005,7 @@ export default function SchedulePage() {
                           <div className="p-3 rounded-xl bg-muted/40 border border-border/60 space-y-1.5 text-xs">
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground font-medium">Requested By:</span>
-                              <span className="font-bold text-foreground">{b.user?.name || "Tenant"}</span>
+                              <span className="font-bold text-foreground">{b.user?.name || "Member"}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground font-medium">Organization:</span>
@@ -1204,11 +1204,11 @@ export default function SchedulePage() {
                     </div>
                   </div>
 
-                  {/* Tenant & Booker Information Card */}
+                  {/* Organization & Booker Information Card */}
                   <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
                     <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5 text-primary" />
-                      <span>Tenant & Booker</span>
+                      <span>Organization & Booker</span>
                     </h4>
 
                     <div className="space-y-2.5 text-xs">

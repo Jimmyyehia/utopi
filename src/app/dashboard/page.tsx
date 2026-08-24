@@ -504,7 +504,7 @@ export default function ApprovalDashboard() {
                     New Organization / Team Requests ({pendingTeams.length})
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Tenant requests pending review. Approving will activate the organization and notify the creator via email.
+                    Organization requests pending review. Approving will activate the organization and notify the creator via email.
                   </CardDescription>
                 </div>
               </div>

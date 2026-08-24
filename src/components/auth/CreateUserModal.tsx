@@ -199,7 +199,7 @@ export function CreateUserModal({
                   Create User Account
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Register a tenant member, independent user, or management profile
+                  Register an organization member, independent user, or management profile
                 </p>
               </div>
             </div>
@@ -247,7 +247,7 @@ export function CreateUserModal({
                     <span>Workspace Member</span>
                   </div>
                   <p className="text-[11px] font-normal opacity-80 mt-1">
-                    Independent or tenant organization member
+                    Independent or community organization member
                   </p>
                 </button>
 

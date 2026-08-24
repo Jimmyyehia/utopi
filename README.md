@@ -7,14 +7,14 @@
 [![Turso](https://img.shields.io/badge/Turso-LibSQL-44AD8E?style=for-the-badge&logo=sqlite)](https://turso.tech/)
 [![Tests Passing](https://img.shields.io/badge/Tests-94%2F94%20Passed-22c55e?style=for-the-badge)](https://github.com/Jimmyyehia/utopi)
 
-> **Utopi** is a modern, high-performance workspace booking and community space management platform built for modern co-working hubs, student chapters, and multi-tenant organizations.
+> **Utopi** is a modern, high-performance workspace booking and community space management platform built for co-working hubs, student chapters, and partner organizations.
 
 ---
 
 ## ✨ Highlights & Key Features
 
-### 🏢 Multi-Tenant Team & Community Directory
-- **Organization Isolation & Directory**: Multi-tenant structure supporting student organizations and startups (*Hawk Insight*, *HackerRank AUFS*, *PHD Case Competition*, *Nexus Labs*).
+### 🏢 Multi-Organization Team & Community Directory
+- **Organization Isolation & Directory**: Structured support for student organizations and startups (*Hawk Insight*, *HackerRank AUFS*, *PHD Case Competition*, *Nexus Labs*).
 - **Public & Private Teams**: Public organizations reveal team headers to all visitors while preserving member privacy.
 - **Custom Committees & Role Titles**: Support for custom committees (e.g. *AI Research*, *PR*, *Competitive Coding*) and standardized officer titles.
 
@@ -29,7 +29,7 @@
 - **Equal Priority Engine**: Eliminates arbitrary numerical priority scores in favor of a fair, chronological FIFO manager review queue.
 - **Tri-Tier Approval Workflows**:
   - **Management Direct**: Auto-approved instantly with `PAID` status.
-  - **Tenant Officers**: Submits request to Manager Queue with `CASH_PENDING` status.
+  - **Team Officers**: Submits request to Manager Queue with `CASH_PENDING` status.
   - **Guest Coworkers**: Restricted to Shared Area when free of team events.
 
 ### 🔒 Privacy, Security & Incognito Sessions

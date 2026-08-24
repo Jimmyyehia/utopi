@@ -254,7 +254,7 @@ export default function ProfilePage() {
                     </h3>
                   </div>
                   <p className="text-xs text-muted-foreground max-w-xl">
-                    You possess full administrative authority over all tenant organizations, member role approvals, and room reservations across the entire workspace.
+                    You possess full administrative authority over all partner organizations, member role approvals, and room reservations across the entire workspace.
                   </p>
                 </div>
                 <Link href="/dashboard">
@@ -578,7 +578,7 @@ export default function ProfilePage() {
                           {session?.user?.systemRole === "OWNER" ? "Workspace Owner & Root Administrator" : "Workspace Manager"}
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          You operate at the highest authority level. You do not belong to individual tenant teams, giving you impartial governance across all teams and workspace spaces.
+                          You operate at the highest authority level. You do not belong to individual member teams, giving you impartial governance across all teams and workspace spaces.
                         </p>
                       </div>
                     </div>
